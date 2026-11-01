@@ -4,6 +4,12 @@ Social network e pianificatore di road trip per motociclisti.
 
 **Stack:** Java 21 · Spring Boot 4.1 · Spring Security 7 · Thymeleaf + Bootstrap 5 · Leaflet · PostgreSQL 17 · Flyway · Mailpit (dev)
 
+## Documentazione tecnica
+
+- [Architettura](docs/architettura.md): componenti, moduli, tempo reale, sicurezza, modello dei dati, test
+- [Infrastruttura](docs/infrastruttura.md): container, rete locale, configurazione, job, servizi esterni, produzione
+- [Flussi](docs/flussi.md): registrazione, amicizie, chat, foto, agente notizie, tappe e costi, permessi
+
 ## Avvio con Docker (tutto in container)
 
 Requisiti: solo Docker.
@@ -18,6 +24,9 @@ Dopo una modifica al codice ripetere il primo comando per ricostruire l'immagine
 
 Per avere un utente admin, prima del primo avvio copia `.env.example` in `.env` (escluso da git)
 e imposta `ADMIN_PASSWORD`. Senza password l'admin non viene creato.
+
+L'app è raggiungibile anche dagli altri dispositivi della stessa rete Wi-Fi su `http://<IP-del-PC>:8080`:
+vedi [Accesso dagli altri dispositivi](docs/infrastruttura.md#accesso-dagli-altri-dispositivi-della-rete).
 
 ## Avvio in locale per lo sviluppo (dall'IDE o da Maven)
 

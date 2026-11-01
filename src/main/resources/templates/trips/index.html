@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Road trip')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 960px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <h1 class="h3 mb-0">I miei road trip</h1>
+        <a th:href="@{/trips/new}" class="btn btn-warning"><i class="bi bi-plus-lg"></i> Nuovo road trip</a>
+    </div>
+
+    <div th:if="${#lists.isEmpty(trips)}" class="card card-body text-center text-muted shadow-sm py-5">
+        <p class="mb-2"><i class="bi bi-signpost-split display-5"></i></p>
+        <p class="mb-3">Organizza il tuo prossimo viaggio in moto tappa per tappa: percorsi, soste, alloggi e costi.</p>
+        <div><a th:href="@{/trips/new}" class="btn btn-dark">Crea il primo road trip</a></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6" th:each="t : ${trips}">
+            <a th:href="@{/trips/{id}(id=${t.id})}" class="card shadow-sm h-100 text-decoration-none text-dark news-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <h2 class="h5 mb-1" th:text="${t.title}">Viaggio</h2>
+                        <span class="badge" th:classappend="${t.myRole.name() == 'OWNER'} ? 'text-bg-warning' : 'text-bg-secondary'"
+                              th:text="${t.myRole.label}">ruolo</span>
+                    </div>
+                    <div class="small text-muted mb-2">
+                        <th:block th:if="${t.startDate}"><i class="bi bi-calendar-event"></i>
+                            <span th:text="${#temporals.format(t.startDate, 'dd/MM/yyyy')}">data</span> · </th:block>
+                        organizzato da @<span th:text="${t.ownerUsername}">owner</span>
+                    </div>
+                    <div class="d-flex gap-3 small">
+                        <span><i class="bi bi-flag"></i> <span th:text="${t.stages}">0</span> tappe</span>
+                        <span><i class="bi bi-signpost"></i> <span th:text="${#numbers.formatDecimal(t.totalKm, 1, 'POINT', 0, 'COMMA')}">0</span> km</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

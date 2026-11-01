@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Conferma il tuo account</title>
+</head>
+<body style="font-family: Arial, sans-serif; background: #f4f5f7; padding: 24px; color: #212529;">
+<table role="presentation" width="100%" style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 8px;">
+    <tr>
+        <td style="background: #212529; color: #f0a500; padding: 20px 24px; font-size: 20px; font-weight: bold; border-radius: 8px 8px 0 0;">
+            MotoRide
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 24px;">
+            <p>Ciao <strong th:text="${username}">rider</strong>,</p>
+            <p>grazie per esserti registrato. Conferma il tuo indirizzo email per attivare l'account:</p>
+            <p style="text-align: center; margin: 32px 0;">
+                <a th:href="${link}" href="#"
+                   style="background: #f0a500; color: #212529; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                    Attiva il mio account
+                </a>
+            </p>
+            <p style="font-size: 13px; color: #6c757d;">
+                Se il pulsante non funziona, copia questo link nel browser:<br>
+                <span th:text="${link}">link</span>
+            </p>
+            <p style="font-size: 13px; color: #6c757d;">Il link scade dopo 24 ore. Se non ti sei registrato tu, ignora questa email.</p>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

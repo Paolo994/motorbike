@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Verifica account')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="card auth-card shadow-sm">
+        <div class="card-body p-4 text-center" th:switch="${result}">
+            <th:block th:case="'VERIFIED'">
+                <i class="bi bi-check-circle display-4 text-success"></i>
+                <h1 class="h4 mt-3">Account attivato</h1>
+                <p>Ora puoi accedere a MotoRide.</p>
+                <a class="btn btn-dark" th:href="@{/login}">Accedi</a>
+            </th:block>
+            <th:block th:case="'EXPIRED'">
+                <i class="bi bi-hourglass-bottom display-4 text-warning"></i>
+                <h1 class="h4 mt-3">Link scaduto</h1>
+                <p>Inserisci la tua email per riceverne uno nuovo.</p>
+            </th:block>
+            <th:block th:case="*">
+                <i class="bi bi-x-circle display-4 text-danger"></i>
+                <h1 class="h4 mt-3">Link non valido</h1>
+                <p>Il link non è valido o è già stato usato. Se l'account non è ancora attivo, richiedine uno nuovo.</p>
+            </th:block>
+
+            <form th:if="${result != 'VERIFIED'}" th:action="@{/verify/resend}" method="post" class="mt-3">
+                <div class="input-group">
+                    <input type="email" name="email" class="form-control" placeholder="La tua email" required>
+                    <button class="btn btn-warning" type="submit">Invia nuovo link</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

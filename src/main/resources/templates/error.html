@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Errore')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="card auth-card shadow-sm">
+        <div class="card-body p-4 text-center">
+            <h1 class="display-4 fw-bold" th:text="${status}">500</h1>
+            <p th:if="${status == 404}">La pagina che cerchi non esiste.</p>
+            <p th:if="${status == 403}">Non hai i permessi per vedere questa pagina.</p>
+            <p th:if="${status == 413}">Il file inviato è troppo grande. Le foto profilo possono pesare al massimo 5 MB.</p>
+            <p th:unless="${status == 404 or status == 403 or status == 413}">Si è verificato un errore. Riprova più tardi.</p>
+            <a class="btn btn-dark" th:href="@{/}">Torna alla home</a>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Sovrascrive solo queste chiavi di src/main/resources/application.yml durante i test
+app:
+  news:
+    fetch-enabled: false
+  fuel:
+    import-enabled: false

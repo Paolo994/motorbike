@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${'Chat con ' + view.otherName})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 860px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div id="chat" class="card shadow-sm chat-card"
+         th:attr="data-conversation-id=${view.id},
+                  data-messages-url=@{/chat/{id}/messages(id=${view.id})},
+                  data-read-url=@{/chat/{id}/read(id=${view.id})},
+                  data-page-size=${pageSize}">
+
+        <div class="card-header bg-white d-flex align-items-center gap-3 py-2">
+            <a th:href="@{/chat}" class="text-dark" aria-label="Torna alle chat"><i class="bi bi-arrow-left fs-5"></i></a>
+            <th:block th:replace="~{fragments/avatar :: avatar(${view.otherUsername}, ${view.otherPhotoId}, 'avatar-sm')}"></th:block>
+            <a class="fw-semibold text-decoration-none text-dark" th:href="@{/u/{u}(u=${view.otherUsername})}">
+                <span th:text="${view.otherName}">Nome</span>
+                <span class="text-muted small fw-normal">@<span th:text="${view.otherUsername}">u</span></span>
+            </a>
+        </div>
+
+        <div id="chat-scroller" class="card-body chat-scroller">
+            <div class="text-center mb-3" th:if="${view.hasOlder}">
+                <button id="chat-older" type="button" class="btn btn-sm btn-outline-secondary">Carica messaggi precedenti</button>
+            </div>
+            <p id="chat-empty" th:if="${#lists.isEmpty(view.messages)}" class="text-center text-muted my-5">
+                Nessun messaggio. Rompi il ghiaccio! 🏍️
+            </p>
+            <ul id="chat-messages" class="list-unstyled mb-0">
+                <li th:each="m : ${view.messages}" th:attr="data-id=${m.id}"
+                    class="chat-msg" th:classappend="${m.sender == #authentication.name} ? 'mine' : 'theirs'">
+                    <div class="chat-bubble" th:text="${m.body}">testo</div>
+                    <time class="chat-time" data-local th:datetime="${m.createdAt}" th:text="${m.createdAt}">ora</time>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-footer bg-white">
+            <div id="chat-error" class="alert alert-danger py-2 small d-none" role="alert"></div>
+            <form th:if="${view.canSend}" id="chat-form" th:action="@{/chat/{id}/messages(id=${view.id})}" method="post"
+                  class="d-flex gap-2 align-items-end">
+                <textarea id="chat-input" name="body" class="form-control" rows="1" required
+                          th:maxlength="${maxLength}" placeholder="Scrivi un messaggio…" aria-label="Messaggio"></textarea>
+                <button class="btn btn-dark" type="submit" aria-label="Invia"><i class="bi bi-send"></i></button>
+            </form>
+            <p th:unless="${view.canSend}" class="text-muted small mb-0 text-center">
+                Non siete più amici: puoi leggere lo storico ma non inviare nuovi messaggi.
+            </p>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/conversation.js}"></script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${trip.title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+
+<main class="container">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+    <a th:href="@{/trips}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> I miei road trip</a>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1" th:text="${trip.title}">Viaggio</h1>
+            <div class="text-muted small">
+                <th:block th:if="${trip.startDate}"><i class="bi bi-calendar-event"></i>
+                    Partenza il <span th:text="${#temporals.format(trip.startDate, 'dd/MM/yyyy')}">data</span> · </th:block>
+                <span th:text="${#lists.size(trip.stages)}">0</span> tappe ·
+                il tuo ruolo: <strong th:text="${trip.myRole.label}">ruolo</strong>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:if="${trip.canEdit}" th:href="@{/trips/{id}/stages/new(id=${trip.id})}" class="btn btn-warning">
+                <i class="bi bi-plus-lg"></i> Aggiungi tappa
+            </a>
+            <a th:if="${trip.isOwner}" th:href="@{/trips/{id}/edit(id=${trip.id})}" class="btn btn-outline-dark">
+                <i class="bi bi-pencil"></i> Modifica
+            </a>
+        </div>
+    </div>
+    <p th:if="${trip.description}" class="mb-4" style="white-space: pre-line" th:text="${trip.description}">descrizione</p>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div id="trip-map" class="trip-map shadow-sm mb-3" th:attr="data-map=${mapJson}"
+                 role="img" aria-label="Mappa del viaggio"></div>
+
+            <th:block th:replace="~{trips/fragments :: totals(${trip})}"></th:block>
+
+            <h2 class="h5" id="tappe">Tappe</h2>
+            <div th:if="${#lists.isEmpty(trip.stages)}" class="card card-body text-center text-muted shadow-sm">
+                Nessuna tappa ancora.
+                <th:block th:if="${trip.canEdit}"><a th:href="@{/trips/{id}/stages/new(id=${trip.id})}">Aggiungi la prima tappa</a>.</th:block>
+            </div>
+
+            <div class="vstack gap-3">
+                <div th:each="s, it : ${trip.stages}" class="card shadow-sm">
+                    <div class="card-body d-flex gap-3">
+                        <div class="stage-number" th:text="${s.position}">1</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex flex-wrap justify-content-between gap-2">
+                                <a th:href="@{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${s.id})}" class="h6 mb-0 text-dark text-decoration-none stretched-link"
+                                   th:text="${s.title}">Tappa</a>
+                                <span class="small text-muted" th:if="${s.date}" th:text="${#temporals.format(s.date, 'EEE dd/MM')}">data</span>
+                            </div>
+                            <div class="small text-muted text-truncate">
+                                <span th:text="${s.startName}">Da</span> <i class="bi bi-arrow-right"></i> <span th:text="${s.endName}">A</span>
+                                <th:block th:unless="${#lists.isEmpty(s.stops)}"> · <span th:text="${#lists.size(s.stops)}">0</span> fermate</th:block>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3 small mt-1 align-items-center">
+                                <span th:if="${s.km}"><i class="bi bi-signpost"></i> <span th:text="${#numbers.formatDecimal(s.km, 1, 'POINT', 0, 'COMMA')}">0</span> km</span>
+                                <span th:if="${s.duration}"><i class="bi bi-clock"></i> <span th:text="${s.duration}">0</span></span>
+                                <span th:if="${s.fuel != null and s.fuel.cost != null}"><i class="bi bi-fuel-pump"></i> <span th:text="${#numbers.formatDecimal(s.fuel.cost, 1, 'POINT', 2, 'COMMA')}">0</span> €</span>
+                                <span th:if="${s.hasAccommodation()}"><i class="bi bi-house-door"></i>
+                                    <span th:text="${s.accommodationType} ?: 'Alloggio'">Ostello</span><th:block th:if="${s.accommodationPrice}"> · <span th:text="${#numbers.formatDecimal(s.accommodationPrice, 1, 'POINT', 2, 'COMMA')}">0</span> €</th:block>
+                                </span>
+                                <th:block th:replace="~{trips/fragments :: routeBadges(${s})}"></th:block>
+                            </div>
+                        </div>
+                        <div th:if="${trip.canEdit}" class="d-flex flex-column gap-1 position-relative" style="z-index: 2">
+                            <form th:action="@{/trips/{id}/stages/{sid}/move(id=${trip.id}, sid=${s.id})}" method="post">
+                                <input type="hidden" name="dir" value="up">
+                                <button class="btn btn-sm btn-light" th:disabled="${it.first}" aria-label="Sposta su"><i class="bi bi-chevron-up"></i></button>
+                            </form>
+                            <form th:action="@{/trips/{id}/stages/{sid}/move(id=${trip.id}, sid=${s.id})}" method="post">
+                                <input type="hidden" name="dir" value="down">
+                                <button class="btn btn-sm btn-light" th:disabled="${it.last}" aria-label="Sposta giù"><i class="bi bi-chevron-down"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Partecipanti -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Partecipanti</h2>
+                    <ul class="list-unstyled mb-0">
+                        <li th:each="m : ${trip.members}" class="d-flex align-items-center gap-2 py-2 border-bottom">
+                            <th:block th:replace="~{fragments/avatar :: avatar(${m.username}, ${m.photoId}, 'avatar-sm')}"></th:block>
+                            <div class="flex-grow-1 min-w-0">
+                                <a th:href="@{/u/{u}(u=${m.username})}" class="text-dark text-decoration-none" th:text="${m.shownName}">Nome</a>
+                                <div class="small text-muted" th:text="${m.role.label}">ruolo</div>
+                            </div>
+                            <div th:if="${trip.isOwner and m.role.name() != 'OWNER'}" class="dropdown">
+                                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-label="Gestisci partecipante"><i class="bi bi-three-dots"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li th:each="r : ${roles}" th:if="${r.name() != 'OWNER' and r != m.role}">
+                                        <form th:action="@{/trips/{id}/members/{uid}/role(id=${trip.id}, uid=${m.userId})}" method="post">
+                                            <input type="hidden" name="role" th:value="${r}">
+                                            <button class="dropdown-item" th:text="'Imposta: ' + ${r.label}">ruolo</button>
+                                        </form>
+                                    </li>
+                                    <li>
+                                        <form th:action="@{/trips/{id}/members/{uid}/remove(id=${trip.id}, uid=${m.userId})}" method="post">
+                                            <button class="dropdown-item text-danger">Rimuovi dal viaggio</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <form th:if="${trip.isOwner and invitable != null and !#lists.isEmpty(invitable)}"
+                          th:action="@{/trips/{id}/members(id=${trip.id})}" method="post" class="mt-3">
+                        <label class="form-label small mb-1" for="invite-user">Invita un amico</label>
+                        <div class="input-group input-group-sm mb-2">
+                            <select id="invite-user" name="username" class="form-select" required>
+                                <option th:each="f : ${invitable}" th:value="${f.username}" th:text="${f.shownName} + ' (@' + ${f.username} + ')'">amico</option>
+                            </select>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <select name="role" class="form-select" aria-label="Ruolo">
+                                <option value="EDITOR">Può modificare le tappe</option>
+                                <option value="VIEWER">Sola lettura</option>
+                            </select>
+                            <button class="btn btn-dark">Invita</button>
+                        </div>
+                    </form>
+                    <p th:if="${trip.isOwner and invitable != null and #lists.isEmpty(invitable)}" class="small text-muted mt-3 mb-0">
+                        Per invitare qualcuno deve essere tra i tuoi <a th:href="@{/friends}">amici</a>.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form th:unless="${trip.isOwner}" th:action="@{/trips/{id}/leave(id=${trip.id})}" method="post"
+                          onsubmit="return confirm('Vuoi lasciare questo viaggio?');">
+                        <button class="btn btn-outline-danger btn-sm w-100">Lascia il viaggio</button>
+                    </form>
+                    <form th:if="${trip.isOwner}" th:action="@{/trips/{id}/delete(id=${trip.id})}" method="post"
+                          onsubmit="return confirm('Eliminare definitivamente il viaggio e tutte le tappe?');">
+                        <button class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Elimina il viaggio</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:src="@{/js/trip-map.js}"></script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${detail.stage.title} + ' · ' + ${detail.trip.title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+
+<main class="container" th:with="trip=${detail.trip}, s=${detail.stage}">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+    <a th:href="@{/trips/{id}(id=${trip.id})}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> <span th:text="${trip.title}">Viaggio</span></a>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-2 mb-3">
+        <div class="d-flex gap-3 align-items-center">
+            <div class="stage-number" th:text="${s.position}">1</div>
+            <div>
+                <h1 class="h3 mb-0" th:text="${s.title}">Tappa</h1>
+                <div class="text-muted small">
+                    <th:block th:if="${s.date}"><span th:text="${#temporals.format(s.date, 'EEEE dd MMMM yyyy')}">data</span> · </th:block>
+                    <span th:text="${s.startName}">Da</span> <i class="bi bi-arrow-right"></i> <span th:text="${s.endName}">A</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a th:if="${detail.prevStageId}" th:href="@{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${detail.prevStageId})}" class="btn btn-light" aria-label="Tappa precedente"><i class="bi bi-chevron-left"></i></a>
+            <a th:if="${detail.nextStageId}" th:href="@{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${detail.nextStageId})}" class="btn btn-light" aria-label="Tappa successiva"><i class="bi bi-chevron-right"></i></a>
+            <a th:if="${trip.canEdit}" th:href="@{/trips/{id}/stages/{sid}/edit(id=${trip.id}, sid=${s.id})}" class="btn btn-outline-dark"><i class="bi bi-pencil"></i> Modifica</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div id="trip-map" class="trip-map shadow-sm mb-3" th:attr="data-map=${mapJson}" role="img" aria-label="Mappa della tappa"></div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6 col-md-3"><div class="stat-tile">
+                    <div class="small text-muted">Distanza</div>
+                    <div class="value"><span th:text="${s.km != null} ? ${#numbers.formatDecimal(s.km, 1, 'POINT', 1, 'COMMA')} : '—'">0</span> km</div>
+                </div></div>
+                <div class="col-6 col-md-3"><div class="stat-tile">
+                    <div class="small text-muted">Tempo di guida</div>
+                    <div class="value" th:text="${s.duration} ?: '—'">—</div>
+                </div></div>
+                <div class="col-6 col-md-3"><div class="stat-tile">
+                    <div class="small text-muted">Benzina</div>
+                    <div class="value" th:if="${s.fuel != null}"><span th:text="${#numbers.formatDecimal(s.fuel.liters, 1, 'POINT', 1, 'COMMA')}">0</span> l</div>
+                    <div class="value" th:if="${s.fuel == null}">—</div>
+                </div></div>
+                <div class="col-6 col-md-3"><div class="stat-tile">
+                    <div class="small text-muted">Costo carburante</div>
+                    <div class="value" th:text="${s.fuel != null and s.fuel.cost != null} ? ${#numbers.formatDecimal(s.fuel.cost, 1, 'POINT', 2, 'COMMA')} + ' €' : '—'">—</div>
+                </div></div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <th:block th:replace="~{trips/fragments :: routeBadges(${s})}"></th:block>
+                <span th:if="${s.avoidMotorways and s.hasMotorway == true}" class="small text-muted">
+                    (avevi chiesto di evitare le autostrade, ma su questo percorso non ci sono alternative ragionevoli)
+                </span>
+            </div>
+            <div th:if="${s.routeStatus.name() == 'ESTIMATED'}" class="alert alert-warning small d-flex justify-content-between align-items-center gap-2">
+                <span>Il servizio di calcolo percorsi non era disponibile: distanza e tempo sono stimati in linea d'aria e non ci sono indicazioni stradali.</span>
+                <form th:if="${trip.canEdit}" th:action="@{/trips/{id}/stages/{sid}/reroute(id=${trip.id}, sid=${s.id})}" method="post">
+                    <button class="btn btn-sm btn-dark text-nowrap">Riprova</button>
+                </form>
+            </div>
+
+            <!-- Carburante -->
+            <div class="card shadow-sm mb-4" th:if="${s.fuel != null}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-fuel-pump"></i> Carburante</h2>
+                    <p class="small mb-2" th:if="${s.fuel.pricePerLiter != null}">
+                        Prezzo medio benzina self
+                        <strong th:text="${#numbers.formatDecimal(s.fuel.pricePerLiter, 1, 'POINT', 3, 'COMMA')} + ' €/l'">1,800 €/l</strong>
+                        <span th:text="${s.fuel.localPrice} ? '(distributori entro 15 km da partenza e arrivo)' : '(media nazionale: nessun dato vicino al percorso)'"></span>,
+                        consumo <span th:text="${#numbers.formatDecimal(trip.bike.kmPerLiter, 1, 'POINT', 1, 'COMMA')}">20</span> km/l<th:block th:if="${trip.bike.defaultConsumption}"> (valore medio: <a th:href="@{/profile/edit}">imposta il tuo</a>)</th:block>.
+                    </p>
+                    <p class="small mb-2 text-muted" th:if="${s.fuel.pricePerLiter == null}">Prezzi carburante non ancora disponibili.</p>
+                    <p class="small mb-2" th:if="${s.fuel.rangeKm != null}">
+                        <th:block th:if="${s.fuel.refuelsNeeded == 0}"><i class="bi bi-check-circle text-success"></i> Con il pieno alla partenza arrivi a destinazione (autonomia ~<span th:text="${s.fuel.rangeKm}">300</span> km).</th:block>
+                        <th:block th:if="${s.fuel.refuelsNeeded > 0}"><i class="bi bi-exclamation-triangle text-warning"></i>
+                            Autonomia ~<span th:text="${s.fuel.rangeKm}">200</span> km: prevedi
+                            <strong th:text="${s.fuel.refuelsNeeded} + (${s.fuel.refuelsNeeded == 1} ? ' rifornimento' : ' rifornimenti')">1 rifornimento</strong> durante la tappa.</th:block>
+                    </p>
+                    <p class="small text-muted mb-2" th:if="${s.fuel.rangeKm == null}">Indica la capacità del serbatoio nel <a th:href="@{/profile/edit}">profilo</a> per sapere se servono rifornimenti.</p>
+
+                    <th:block th:unless="${#lists.isEmpty(detail.cheapestNearStart)}">
+                        <div class="small fw-semibold mt-3 mb-1">Fai il pieno prima di partire: i più economici vicino alla partenza</div>
+                        <ul class="list-group list-group-flush small">
+                            <li th:each="st : ${detail.cheapestNearStart}" class="list-group-item px-0 d-flex justify-content-between gap-2">
+                                <span>
+                                    <span th:text="${st.displayName()}">Distributore</span>
+                                    <span class="text-muted d-block" th:text="${st.address} + ', ' + ${st.comune} + ' · ' + ${#numbers.formatDecimal(st.distanceKm, 1, 'POINT', 1, 'COMMA')} + ' km'">indirizzo</span>
+                                </span>
+                                <strong class="text-nowrap" th:text="${#numbers.formatDecimal(st.petrolSelf, 1, 'POINT', 3, 'COMMA')} + ' €/l'">1,799</strong>
+                            </li>
+                        </ul>
+                    </th:block>
+                </div>
+            </div>
+
+            <!-- Indicazioni stradali -->
+            <div class="card shadow-sm mb-4" th:unless="${#lists.isEmpty(s.directions)}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-sign-turn-right"></i> Indicazioni stradali</h2>
+                    <details>
+                        <summary class="small mb-2" th:text="${#lists.size(s.directions)} + ' indicazioni svolta per svolta'">indicazioni</summary>
+                        <ol class="directions small ps-3 mb-0">
+                            <li th:each="d : ${s.directions}">
+                                <span th:text="${d.text}">Svolta a destra</span>
+                                <span class="text-muted" th:if="${d.km > 0}" th:text="'· ' + ${#numbers.formatDecimal(d.km, 1, 'POINT', 1, 'COMMA')} + ' km'"></span>
+                            </li>
+                        </ol>
+                    </details>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm mb-4" th:if="${s.notes}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-info-circle"></i> Indicazioni per il gruppo</h2>
+                    <p class="mb-0" style="white-space: pre-line" th:text="${s.notes}">note</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4" th:if="${s.highlights}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-camera"></i> Cosa vedere</h2>
+                    <p class="mb-0" style="white-space: pre-line" th:text="${s.highlights}">cosa vedere</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4" th:unless="${#lists.isEmpty(s.stops)}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-geo"></i> Fermate</h2>
+                    <ol class="list-unstyled mb-0">
+                        <li th:each="st, it : ${s.stops}" class="d-flex gap-2 py-1">
+                            <i class="bi" th:classappend="${st.icon}"></i>
+                            <div>
+                                <span class="fw-semibold" th:text="${st.name}">Fermata</span>
+                                <span class="small text-muted" th:text="'· ' + ${st.typeLabel}">tipo</span>
+                                <div class="small text-muted" th:if="${st.notes}" th:text="${st.notes}">note</div>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4" th:if="${s.hasAccommodation()}">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-house-door"></i> Dove si dorme</h2>
+                    <div class="fw-semibold">
+                        <span th:text="${s.accommodationName} ?: 'Alloggio'">Nome</span>
+                        <span class="badge text-bg-light border" th:if="${s.accommodationType}" th:text="${s.accommodationType}">Ostello</span>
+                    </div>
+                    <div class="small text-muted" th:if="${s.accommodationAddress}" th:text="${s.accommodationAddress}">indirizzo</div>
+                    <div class="mt-1" th:if="${s.accommodationPrice}">
+                        <strong th:text="${#numbers.formatDecimal(s.accommodationPrice, 1, 'POINT', 2, 'COMMA')} + ' €'">0 €</strong>
+                    </div>
+                    <a th:if="${s.accommodationUrl}" th:href="${s.accommodationUrl}" target="_blank" rel="noopener noreferrer" class="small">
+                        Vai al sito <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div th:if="${s.notes == null and s.highlights == null and #lists.isEmpty(s.stops) and !s.hasAccommodation()}"
+                 class="card card-body text-muted small shadow-sm">
+                Nessuna nota, fermata o alloggio per questa tappa.
+                <a th:if="${trip.canEdit}" th:href="@{/trips/{id}/stages/{sid}/edit(id=${trip.id}, sid=${s.id})}">Aggiungili ora</a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:src="@{/js/trip-map.js}"></script>
+</body>
+</html>

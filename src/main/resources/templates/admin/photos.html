@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Foto da approvare')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 960px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+    <a th:href="@{/admin}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Amministrazione</a>
+    <h1 class="h3 mt-2 mb-4">Foto profilo da approvare</h1>
+
+    <div th:if="${#lists.isEmpty(photos)}" class="card card-body text-center text-muted shadow-sm">
+        <p class="mb-1"><i class="bi bi-check2-circle display-6"></i></p>
+        Nessuna foto in attesa.
+    </div>
+
+    <div class="row g-4">
+        <div class="col-sm-6 col-lg-4" th:each="p : ${photos}">
+            <div class="card shadow-sm h-100">
+                <img th:src="@{/photos/{id}(id=${p.id})}" class="card-img-top" alt="Foto da moderare" style="aspect-ratio: 1; object-fit: cover">
+                <div class="card-body">
+                    <a th:href="@{/u/{u}(u=${p.user.username})}" class="fw-semibold" th:text="'@' + ${p.user.username}">@utente</a>
+                    <div class="small text-muted">Caricata il <span th:text="${#temporals.format(p.createdAt, 'dd/MM/yyyy HH:mm')}">data</span></div>
+
+                    <form th:action="@{/admin/photos/{id}/approve(id=${p.id})}" method="post" class="mt-3">
+                        <button class="btn btn-success w-100"><i class="bi bi-check-lg"></i> Approva</button>
+                    </form>
+                    <form th:action="@{/admin/photos/{id}/reject(id=${p.id})}" method="post" class="mt-2">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="reason" class="form-control" maxlength="300" placeholder="Motivo (facoltativo)">
+                            <button class="btn btn-outline-danger">Rifiuta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

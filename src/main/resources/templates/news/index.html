@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${selected != null ? selected.name : 'Notizie'})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="row g-4">
+        <!-- Topic -->
+        <aside class="col-lg-3">
+            <h1 class="h4 mb-3">Notizie</h1>
+            <div class="list-group shadow-sm mb-3">
+                <a th:href="@{/news}" class="list-group-item list-group-item-action"
+                   th:classappend="${selected == null} ? 'active'">
+                    <i class="bi bi-collection me-2"></i> Tutte le notizie
+                </a>
+                <a th:each="t : ${topics}" th:href="@{/news(topic=${t.slug})}"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                   th:classappend="${selected != null and selected.id == t.id} ? 'active'">
+                    <span><i class="bi me-2" th:classappend="${t.icon}"></i><span th:text="${t.name}">Topic</span></span>
+                    <i th:if="${subscriptions.containsKey(t.id)}" class="bi bi-bell-fill small" title="Segui questo topic"></i>
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="h6">I topic che segui</h2>
+                    <p class="small text-muted">Ricevi una notifica, e se vuoi un'email riepilogativa, quando escono nuovi articoli.</p>
+                    <ul class="list-unstyled mb-0">
+                        <li th:each="t : ${topics}" class="d-flex justify-content-between align-items-center py-1 gap-2"
+                            th:with="sub=${subscriptions.get(t.id)}">
+                            <span class="small" th:text="${t.name}">Topic</span>
+                            <span class="d-flex gap-1">
+                                <form th:if="${sub != null}" th:action="@{/news/subscriptions}" method="post">
+                                    <input type="hidden" name="topic" th:value="${t.slug}">
+                                    <input type="hidden" name="action" th:value="${sub.emailEnabled} ? 'email-off' : 'email-on'">
+                                    <input type="hidden" name="back" th:value="${selected != null} ? '/news?topic=' + ${selected.slug} : '/news'">
+                                    <button class="btn btn-sm" th:classappend="${sub.emailEnabled} ? 'btn-dark' : 'btn-outline-secondary'"
+                                            th:title="${sub.emailEnabled} ? 'Email attive: clic per disattivarle' : 'Email disattivate: clic per attivarle'">
+                                        <i class="bi" th:classappend="${sub.emailEnabled} ? 'bi-envelope-fill' : 'bi-envelope-slash'"></i>
+                                    </button>
+                                </form>
+                                <form th:action="@{/news/subscriptions}" method="post">
+                                    <input type="hidden" name="topic" th:value="${t.slug}">
+                                    <input type="hidden" name="action" th:value="${sub != null} ? 'unfollow' : 'follow'">
+                                    <input type="hidden" name="back" th:value="${selected != null} ? '/news?topic=' + ${selected.slug} : '/news'">
+                                    <button class="btn btn-sm" th:classappend="${sub != null} ? 'btn-warning' : 'btn-outline-dark'"
+                                            th:text="${sub != null} ? 'Seguito' : 'Segui'">Segui</button>
+                                </form>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Articoli -->
+        <section class="col-lg-9">
+            <div th:if="${selected != null}" class="mb-3">
+                <h2 class="h4 mb-0"><i class="bi me-2" th:classappend="${selected.icon}"></i><span th:text="${selected.name}">Topic</span></h2>
+                <p class="text-muted mb-0" th:text="${selected.description}">descrizione</p>
+            </div>
+
+            <div th:if="${articles.isEmpty()}" class="card card-body text-center text-muted shadow-sm">
+                <p class="mb-1"><i class="bi bi-newspaper display-6"></i></p>
+                Nessun articolo per ora: l'agente controlla le fonti ogni 30 minuti.
+            </div>
+
+            <div class="vstack gap-3">
+                <article th:each="a : ${articles.content}" class="card shadow-sm news-card">
+                    <div class="row g-0">
+                        <div class="col-sm-4 col-md-3" th:if="${a.imageUrl}">
+                            <img th:src="${a.imageUrl}" class="news-img rounded-start" alt="" loading="lazy" referrerpolicy="no-referrer">
+                        </div>
+                        <div th:class="${a.imageUrl != null} ? 'col-sm-8 col-md-9' : 'col-12'">
+                            <div class="card-body">
+                                <div class="small text-muted mb-1">
+                                    <a th:href="@{/news(topic=${a.topic.slug})}" class="badge text-bg-dark text-decoration-none" th:text="${a.topic.name}">Topic</a>
+                                    · <span th:text="${a.source.name}">Fonte</span>
+                                    · <time data-local th:datetime="${a.publishedAt}" th:text="${#temporals.format(a.publishedAt, 'dd/MM HH:mm')}">ora</time>
+                                </div>
+                                <h3 class="h6 mb-1">
+                                    <a th:href="${a.url}" target="_blank" rel="noopener noreferrer" class="stretched-link text-dark text-decoration-none"
+                                       th:text="${a.title}">Titolo</a>
+                                </h3>
+                                <p class="small text-muted mb-0" th:if="${a.summary}" th:text="${a.summary}">riassunto</p>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <nav th:if="${articles.totalPages > 1}" class="mt-4" aria-label="Pagine">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item" th:classappend="${articles.first} ? 'disabled'">
+                        <a class="page-link" th:href="@{/news(topic=${selected?.slug}, page=${articles.number - 1})}">« Più recenti</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link" th:text="${articles.number + 1} + ' / ' + ${articles.totalPages}">1 / 3</span>
+                    </li>
+                    <li class="page-item" th:classappend="${articles.last} ? 'disabled'">
+                        <a class="page-link" th:href="@{/news(topic=${selected?.slug}, page=${articles.number + 1})}">Meno recenti »</a>
+                    </li>
+                </ul>
+            </nav>
+        </section>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuove notizie</title>
+</head>
+<body style="font-family: Arial, sans-serif; background: #f4f5f7; padding: 24px; color: #212529;">
+<table role="presentation" width="100%" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px;">
+    <tr>
+        <td style="background: #212529; color: #f0a500; padding: 20px 24px; font-size: 20px; font-weight: bold; border-radius: 8px 8px 0 0;">
+            MotoRide · Notizie
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 24px;">
+            <p>Ciao <strong th:text="${username}">rider</strong>,</p>
+            <p th:text="${total == 1} ? 'è uscito un nuovo articolo sui topic che segui:' : 'sono usciti ' + ${total} + ' nuovi articoli sui topic che segui:'">
+                ecco le novità sui topic che segui:
+            </p>
+
+            <th:block th:each="s : ${sections}">
+                <h2 style="font-size: 16px; margin: 24px 0 8px; border-bottom: 2px solid #f0a500; padding-bottom: 4px;"
+                    th:text="${s.topicName}">MotoGP</h2>
+                <table role="presentation" width="100%">
+                    <tr th:each="a : ${s.articles}">
+                        <td style="padding: 6px 0;">
+                            <a th:href="${a.url}" href="#" style="color: #212529; font-weight: bold; text-decoration: none;" th:text="${a.title}">Titolo</a><br>
+                            <span style="font-size: 12px; color: #6c757d;" th:text="${a.sourceName}">Fonte</span>
+                        </td>
+                    </tr>
+                </table>
+                <p th:if="${s.total > #lists.size(s.articles)}" style="font-size: 13px; margin: 4px 0;">
+                    <a th:href="${baseUrl} + '/news?topic=' + ${s.topicSlug}" href="#" style="color: #b07800;"
+                       th:text="'Altri ' + ${s.total - #lists.size(s.articles)} + ' articoli su MotoRide'">Altri articoli</a>
+                </p>
+            </th:block>
+
+            <p style="font-size: 12px; color: #6c757d; margin-top: 32px;">
+                Ricevi questa email perché segui questi topic con le email attive.
+                Puoi disattivarle in qualsiasi momento dalla <a th:href="${baseUrl} + '/news'" href="#" style="color: #6c757d;">pagina Notizie</a>.
+            </p>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

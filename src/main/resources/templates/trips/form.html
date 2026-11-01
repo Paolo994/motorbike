@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${editing} ? 'Modifica viaggio' : 'Nuovo road trip')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 720px">
+    <a th:href="${editing} ? @{/trips/{id}(id=${tripId})} : @{/trips}" class="small text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Indietro
+    </a>
+    <div class="card shadow-sm mt-2">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-4" th:text="${editing} ? 'Modifica viaggio' : 'Nuovo road trip'">Nuovo road trip</h1>
+            <form th:action="${editing} ? @{/trips/{id}/edit(id=${tripId})} : @{/trips}" th:object="${form}" method="post">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Nome del viaggio</label>
+                    <input type="text" th:field="*{title}" class="form-control" placeholder="es. Giro delle Dolomiti 2027"
+                           th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'" maxlength="120">
+                    <div class="invalid-feedback" th:errors="*{title}"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="startDate" class="form-label">Data di partenza <span class="text-muted small">(facoltativa)</span></label>
+                    <input type="date" th:field="*{startDate}" class="form-control" style="max-width: 220px">
+                </div>
+                <div class="mb-4">
+                    <label for="description" class="form-label">Descrizione</label>
+                    <textarea th:field="*{description}" class="form-control" rows="4" maxlength="2000"
+                              placeholder="L'idea del viaggio, chi viene, cosa portare…"></textarea>
+                </div>
+                <button type="submit" class="btn btn-dark" th:text="${editing} ? 'Salva' : 'Crea il viaggio'">Crea</button>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

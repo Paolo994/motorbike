@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Fonti notizie')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+    <a th:href="@{/admin}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Amministrazione</a>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-2 mb-4">
+        <h1 class="h3 mb-0">Agente notizie</h1>
+        <form th:action="@{/admin/news/run}" method="post">
+            <button class="btn btn-warning" th:disabled="${running}">
+                <i class="bi bi-arrow-repeat"></i> <span th:text="${running} ? 'In esecuzione…' : 'Leggi le fonti ora'">Leggi ora</span>
+            </button>
+        </form>
+    </div>
+
+    <h2 class="h5">Fonti</h2>
+    <div class="table-responsive card shadow-sm mb-4">
+        <table class="table table-sm align-middle mb-0">
+            <thead class="table-light">
+            <tr><th>Fonte</th><th>Topic predefinito</th><th class="text-end">Articoli</th><th>Ultima lettura</th><th>Stato</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="s : ${sources}" th:classappend="${!s.enabled} ? 'text-muted'">
+                <td>
+                    <div class="fw-semibold" th:text="${s.name}">Fonte</div>
+                    <div class="small text-muted text-break" th:text="${s.feedUrl}">url</div>
+                </td>
+                <td th:text="${s.defaultTopic != null} ? ${s.defaultTopic.name} : '— (solo parole chiave)'">MotoGP</td>
+                <td class="text-end" th:text="${counts.getOrDefault(s.id, 0L)}">0</td>
+                <td class="small">
+                    <time th:if="${s.lastFetchedAt}" data-local th:datetime="${s.lastFetchedAt}" th:text="${s.lastFetchedAt}">ora</time>
+                    <span th:unless="${s.lastFetchedAt}">mai</span>
+                    <div th:if="${s.lastNewCount != null}" class="text-muted" th:text="'+' + ${s.lastNewCount} + ' nuovi'"></div>
+                </td>
+                <td>
+                    <span th:if="${s.lastStatus == 'OK'}" class="badge text-bg-success">OK</span>
+                    <span th:if="${s.lastStatus == 'ERROR'}" class="badge text-bg-danger" th:title="${s.lastError}">Errore</span>
+                    <div th:if="${s.lastStatus == 'ERROR'}" class="small text-danger text-break" th:text="${s.lastError}">errore</div>
+                </td>
+                <td>
+                    <form th:action="@{/admin/news/sources/{id}/enabled(id=${s.id})}" method="post">
+                        <input type="hidden" name="enabled" th:value="${!s.enabled}">
+                        <button class="btn btn-sm" th:classappend="${s.enabled} ? 'btn-outline-secondary' : 'btn-outline-success'"
+                                th:text="${s.enabled} ? 'Disattiva' : 'Attiva'">Disattiva</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h2 class="h6">Aggiungi una fonte RSS/Atom</h2>
+            <form th:action="@{/admin/news/sources}" method="post" class="row g-2">
+                <div class="col-md-3"><input name="name" class="form-control" placeholder="Nome" required maxlength="120"></div>
+                <div class="col-md-4"><input name="feedUrl" type="url" class="form-control" placeholder="https://…/feed" required maxlength="500"></div>
+                <div class="col-md-2">
+                    <select name="defaultTopic" class="form-select" aria-label="Topic predefinito">
+                        <option value="">Nessun topic</option>
+                        <option th:each="t : ${topics}" th:value="${t.slug}" th:text="${t.name}">topic</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <select name="language" class="form-select" aria-label="Lingua">
+                        <option value="it">IT</option>
+                        <option value="en">EN</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><button class="btn btn-dark w-100">Aggiungi</button></div>
+                <input type="hidden" name="siteUrl" value="">
+            </form>
+        </div>
+    </div>
+
+    <h2 class="h5" id="topics">Topic e parole chiave</h2>
+    <p class="small text-muted">
+        Ogni articolo viene assegnato al topic con più parole chiave trovate (3 punti nel titolo, 1 nel riassunto;
+        il topic predefinito della fonte vince in caso di parità). Maiuscole e accenti non contano. Le modifiche valgono per i prossimi articoli.
+    </p>
+    <div class="row g-3 mb-5">
+        <div class="col-md-6" th:each="t : ${topics}">
+            <form class="card shadow-sm h-100" th:action="@{/admin/news/topics/{slug}/keywords(slug=${t.slug})}" method="post">
+                <div class="card-body">
+                    <h3 class="h6"><i class="bi me-1" th:classappend="${t.icon}"></i><span th:text="${t.name}">Topic</span></h3>
+                    <textarea name="keywords" class="form-control form-control-sm mb-2" rows="4" th:text="${t.keywords}"
+                              th:attr="aria-label='Parole chiave ' + ${t.name}"></textarea>
+                    <button class="btn btn-sm btn-outline-dark">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

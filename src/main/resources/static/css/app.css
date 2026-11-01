@@ -1,0 +1,213 @@
+body {
+    background-color: #f4f5f7;
+    min-height: 100vh;
+}
+
+.auth-card {
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.hero {
+    background: linear-gradient(135deg, #212529 0%, #3a3f44 100%);
+    color: #fff;
+    border-radius: 1rem;
+}
+
+.feature-card .bi {
+    font-size: 2rem;
+    color: #f0a500;
+}
+
+.avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: #212529;
+    color: #f0a500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+img.avatar {
+    object-fit: cover;
+    background: #dee2e6;
+}
+
+.avatar.avatar-lg {
+    width: 140px;
+    height: 140px;
+    font-size: 3.5rem;
+}
+
+.notif-unread {
+    border-left: 4px solid #f0a500;
+}
+
+.notif-badge {
+    position: absolute;
+    top: 2px;
+    right: -2px;
+    font-size: .65rem;
+}
+
+.avatar.avatar-sm {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+/* ---------------------------------------------------------------- notizie */
+
+.news-img {
+    width: 100%;
+    height: 100%;
+    min-height: 140px;
+    max-height: 190px;
+    object-fit: cover;
+}
+
+.news-card:hover {
+    box-shadow: 0 .4rem 1rem rgba(0, 0, 0, .12) !important;
+}
+
+/* ---------------------------------------------------------------- road trip */
+
+.trip-map {
+    height: 420px;
+    border-radius: .5rem;
+    z-index: 0;
+}
+
+.trip-map.trip-map-sm {
+    height: 340px;
+}
+
+.trip-map.picking {
+    cursor: crosshair;
+    outline: 3px solid #f0a500;
+}
+
+.map-pin span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    color: #fff;
+    font-weight: 700;
+    font-size: .75rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+}
+
+.loc.armed {
+    outline: 2px dashed #f0a500;
+    outline-offset: 4px;
+    border-radius: .375rem;
+}
+
+.loc-results {
+    position: relative;
+    z-index: 5;
+}
+
+.stage-number {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #212529;
+    color: #f0a500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.directions li {
+    padding: .35rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.stat-tile {
+    background: #fff;
+    border-radius: .5rem;
+    padding: .75rem 1rem;
+    border: 1px solid #e9ecef;
+}
+
+.stat-tile .value {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- chat */
+
+.chat-card {
+    height: calc(100vh - 140px);
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-scroller {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.chat-msg {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: .6rem;
+}
+
+.chat-msg.mine {
+    align-items: flex-end;
+}
+
+.chat-msg.theirs {
+    align-items: flex-start;
+}
+
+.chat-bubble {
+    max-width: min(75%, 560px);
+    padding: .5rem .8rem;
+    border-radius: 1rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.chat-msg.mine .chat-bubble {
+    background: #212529;
+    color: #fff;
+    border-bottom-right-radius: .25rem;
+}
+
+.chat-msg.theirs .chat-bubble {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-bottom-left-radius: .25rem;
+}
+
+.chat-time {
+    font-size: .72rem;
+    color: #6c757d;
+    margin-top: .15rem;
+}
+
+#chat-input {
+    resize: none;
+    max-height: 140px;
+}

@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: motorbike
+      POSTGRES_USER: motorbike
+      POSTGRES_PASSWORD: motorbike
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U motorbike -d motorbike"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    labels:
+      # Boot non ha una service connection per Mailpit: la config SMTP è in application.yml
+      org.springframework.boot.ignore: "true"
+    ports:
+      - "127.0.0.1:1025:1025"   # SMTP
+      - "127.0.0.1:8025:8025"   # Web UI -> http://localhost:8025
+
+  # L'applicazione. È nel profilo "app" così `mvn spring-boot:run` (che avvia questo compose)
+  # non la lancia due volte. Per avviare tutto in Docker:
+  #   docker compose --profile app up -d --build
+  app:
+    profiles: ["app"]
+    build: .
+    image: motoride:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    labels:
+      org.springframework.boot.ignore: "true"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/motorbike
+      DB_USER: motorbike
+      DB_PASSWORD: motorbike
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      APP_BASE_URL: http://localhost:8080
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_THYMELEAF_CACHE: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

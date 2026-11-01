@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cerca motociclisti')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 860px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <a th:href="@{/friends}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> Amici</a>
+    <h1 class="h3 mt-2 mb-3">Cerca motociclisti</h1>
+
+    <form th:action="@{/friends/search}" method="get" class="d-flex gap-2 mb-4" role="search">
+        <input type="search" name="q" th:value="${q}" class="form-control form-control-lg"
+               placeholder="Username" aria-label="Username" autofocus>
+        <button class="btn btn-dark btn-lg" type="submit"><i class="bi bi-search"></i></button>
+    </form>
+
+    <p th:if="${q.length() > 0 and q.length() < minLength}" class="text-muted">
+        Scrivi almeno <span th:text="${minLength}">2</span> caratteri.
+    </p>
+    <p th:if="${q.length() >= minLength and #lists.isEmpty(results)}" class="text-muted">
+        Nessun utente trovato per "<span th:text="${q}">q</span>".
+    </p>
+
+    <ul th:unless="${#lists.isEmpty(results)}" class="list-group shadow-sm">
+        <th:block th:each="card : ${results}">
+            <li th:replace="~{fragments/friends :: row(${card}, ${'/friends/search?q=' + #uris.escapeQueryParam(q)})}"></li>
+        </th:block>
+    </ul>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

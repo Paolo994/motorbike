@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Riepilogo dei costi (totali del viaggio) -->
+<div th:fragment="totals(trip)" class="row g-2 mb-4">
+    <div class="col-6 col-md-3"><div class="stat-tile">
+        <div class="small text-muted">Distanza</div>
+        <div class="value"><span th:text="${#numbers.formatDecimal(trip.totals.km, 1, 'POINT', 0, 'COMMA')}">0</span> km</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile">
+        <div class="small text-muted">In sella</div>
+        <div class="value" th:text="${trip.totals.duration} ?: '—'">—</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile">
+        <div class="small text-muted">Carburante <span th:text="'(' + ${#numbers.formatDecimal(trip.totals.liters, 1, 'POINT', 1, 'COMMA')} + ' l)'"></span></div>
+        <div class="value"><span th:text="${#numbers.formatDecimal(trip.totals.fuelCost, 1, 'POINT', 2, 'COMMA')}">0</span> €</div>
+    </div></div>
+    <div class="col-6 col-md-3"><div class="stat-tile">
+        <div class="small text-muted">Totale stimato <span class="text-muted">(con alloggi)</span></div>
+        <div class="value"><span th:text="${#numbers.formatDecimal(trip.totals.total, 1, 'POINT', 2, 'COMMA')}">0</span> €</div>
+    </div></div>
+    <div class="col-12 small text-muted">
+        <i class="bi bi-info-circle"></i>
+        Costi calcolati con il consumo della <strong>tua</strong> moto
+        (<span th:text="${#numbers.formatDecimal(trip.bike.kmPerLiter, 1, 'POINT', 1, 'COMMA')}">20</span> km/l<th:block th:if="${trip.bike.defaultConsumption}">, valore medio: <a th:href="@{/profile/edit}">imposta il tuo consumo nel profilo</a></th:block>)
+        e i prezzi reali della benzina self (open data MIMIT) vicino a partenza e arrivo di ogni tappa.
+    </div>
+</div>
+
+<!-- Blocco luogo del form tappa (va incluso dentro un form con th:object):
+     nome + coordinate nascoste + ricerca / scelta sulla mappa -->
+<th:block th:fragment="loc(kind, nameField, latField, lonField, label)">
+    <div class="loc" th:attr="data-loc=${kind}">
+        <label class="form-label" th:text="${label}">Luogo</label>
+        <div class="input-group">
+            <input type="text" class="form-control" th:field="*{__${nameField}__}" data-field="name"
+                   th:classappend="${#fields.hasErrors(nameField) or #fields.hasErrors(latField)} ? 'is-invalid'"
+                   placeholder="Città, passo, indirizzo…" autocomplete="off" maxlength="200">
+            <button class="btn btn-outline-dark loc-search" type="button"><i class="bi bi-search"></i> Cerca</button>
+            <button class="btn btn-outline-secondary loc-pick" type="button" title="Scegli sulla mappa"><i class="bi bi-geo-alt"></i></button>
+        </div>
+        <input type="hidden" th:field="*{__${latField}__}" data-field="lat">
+        <input type="hidden" th:field="*{__${lonField}__}" data-field="lon">
+        <div class="small text-success loc-status"></div>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors(latField)}" th:errors="*{__${latField}__}"></div>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors(nameField)}" th:errors="*{__${nameField}__}"></div>
+        <div class="list-group loc-results mt-1"></div>
+    </div>
+</th:block>
+
+<!-- Badge del percorso -->
+<th:block th:fragment="routeBadges(s)">
+    <span th:if="${s.routeStatus.name() == 'ESTIMATED'}" class="badge text-bg-light border" title="Servizio di percorso non disponibile: distanza stimata">
+        <i class="bi bi-exclamation-triangle text-warning"></i> stima
+    </span>
+    <span th:if="${s.hasMotorway == true}" class="badge text-bg-primary">Autostrada</span>
+    <span th:if="${s.hasMotorway == false}" class="badge text-bg-success">Senza autostrade</span>
+    <span th:if="${s.hasToll == true}" class="badge text-bg-secondary">Pedaggi</span>
+</th:block>
+
+</body>
+</html>

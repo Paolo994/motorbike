@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Home')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <section class="hero p-5 mb-4">
+        <h1 class="display-5 fw-bold">La community per chi vive in sella</h1>
+        <p class="lead mb-4">Trova altri motociclisti, segui le notizie che ti interessano e pianifica i tuoi road trip tappa per tappa.</p>
+        <div sec:authorize="isAnonymous()">
+            <a class="btn btn-warning btn-lg me-2" th:href="@{/register}">Inizia ora</a>
+            <a class="btn btn-outline-light btn-lg" th:href="@{/login}">Ho già un account</a>
+        </div>
+        <div sec:authorize="isAuthenticated()">
+            <p class="mb-0">Bentornato, <strong sec:authentication="name">utente</strong>!</p>
+        </div>
+    </section>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <a th:href="@{/friends}" class="card feature-card news-card h-100 text-decoration-none"><div class="card-body">
+                <i class="bi bi-people"></i>
+                <h5 class="card-title mt-2 text-dark">Amici</h5>
+                <p class="card-text text-muted">Cerca altri motociclisti per username e aggiungili ai tuoi amici.</p>
+            </div></a>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <a th:href="@{/chat}" class="card feature-card news-card h-100 text-decoration-none"><div class="card-body">
+                <i class="bi bi-chat-dots"></i>
+                <h5 class="card-title mt-2 text-dark">Chat</h5>
+                <p class="card-text text-muted">Chatta in tempo reale con i tuoi amici.</p>
+            </div></a>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <a th:href="@{/news}" class="card feature-card news-card h-100 text-decoration-none"><div class="card-body">
+                <i class="bi bi-newspaper"></i>
+                <h5 class="card-title mt-2 text-dark">Notizie</h5>
+                <p class="card-text text-muted">MotoGP, Superbike, nuovi modelli e altro: segui i topic che ti interessano e ricevi notifiche ed email riepilogative.</p>
+            </div></a>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <a th:href="@{/trips}" class="card feature-card news-card h-100 text-decoration-none"><div class="card-body">
+                <i class="bi bi-signpost-split"></i>
+                <h5 class="card-title mt-2 text-dark">Road trip</h5>
+                <p class="card-text text-muted">Organizza viaggi tappa per tappa con gli amici: percorsi, soste, alloggi, cosa vedere e costi reali del carburante.</p>
+            </div></a>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

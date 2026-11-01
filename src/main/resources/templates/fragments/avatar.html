@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Avatar: foto approvata se presente, altrimenti l'iniziale dello username. cls = classi extra (es. 'avatar-sm') -->
+<th:block th:fragment="avatar(username, photoId, cls)">
+    <img th:if="${photoId != null}" th:src="@{/photos/{id}(id=${photoId})}" class="avatar" th:classappend="${cls}"
+         alt="" loading="lazy">
+    <div th:if="${photoId == null}" class="avatar" th:classappend="${cls}"
+         th:text="${#strings.substring(username, 0, 1)}" aria-hidden="true">M</div>
+</th:block>
+</body>
+</html>

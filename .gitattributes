@@ -1,0 +1,7 @@
+# Fine riga LF nel repository, a prescindere dal sistema operativo
+* text=auto eol=lf
+
+# File binari
+*.png binary
+*.jpg binary
+*.jar binary

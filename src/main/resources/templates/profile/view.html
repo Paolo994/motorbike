@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${profile.username})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 760px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <th:block th:replace="~{fragments/avatar :: avatar(${profile.username}, ${profile.photoId}, '')}"></th:block>
+                <div class="flex-grow-1">
+                    <h1 class="h4 mb-0" th:text="${profile.shownName}">Nome</h1>
+                    <div class="text-muted">@<span th:text="${profile.username}">username</span></div>
+                    <div class="text-muted small" th:if="${profile.city}">
+                        <i class="bi bi-geo-alt"></i> <span th:text="${profile.city}">Città</span>
+                    </div>
+                </div>
+                <a th:if="${isMe}" class="btn btn-outline-dark btn-sm" th:href="@{/profile/edit}">
+                    <i class="bi bi-pencil"></i> Modifica
+                </a>
+                <th:block th:unless="${isMe}">
+                    <div th:replace="~{fragments/friends :: actions(${profile.username}, ${relation}, ${'/u/' + profile.username})}"></div>
+                </th:block>
+            </div>
+
+            <p th:if="${profile.bio}" th:text="${profile.bio}" class="mb-4">Bio</p>
+
+            <h2 class="h6 text-uppercase text-muted">La mia moto</h2>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Modello</dt>
+                <dd class="col-sm-8" th:text="${profile.bikeModel} ?: '—'">—</dd>
+                <th:block th:if="${isMe}">
+                    <dt class="col-sm-4">Consumo medio</dt>
+                    <dd class="col-sm-8"
+                        th:text="${profile.fuelConsumptionKmPerL != null} ? ${profile.fuelConsumptionKmPerL} + ' km/l' : '—'">—</dd>
+                    <dt class="col-sm-4">Serbatoio</dt>
+                    <dd class="col-sm-8"
+                        th:text="${profile.tankCapacityL != null} ? ${profile.tankCapacityL} + ' l' : '—'">—</dd>
+                </th:block>
+            </dl>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

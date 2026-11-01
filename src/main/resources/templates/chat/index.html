@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Chat')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 860px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+        <h1 class="h3 mb-0">Chat</h1>
+        <div class="dropdown" th:unless="${#lists.isEmpty(friends)}">
+            <button class="btn btn-warning dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-pencil-square"></i> Nuova chat
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" style="max-height: 320px; overflow-y: auto">
+                <li th:each="f : ${friends}">
+                    <a class="dropdown-item" th:href="@{/chat/with/{u}(u=${f.username})}">
+                        <span th:text="${f.shownName}">Nome</span>
+                        <span class="text-muted small">@<span th:text="${f.username}">u</span></span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <form id="chat-search-form" th:action="@{/chat}" method="get" class="mb-3" role="search"
+          th:unless="${#lists.isEmpty(friends) and q.isEmpty()}">
+        <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+            <input id="chat-search" type="search" name="q" th:value="${q}" class="form-control"
+                   placeholder="Cerca un amico per nome utente" aria-label="Cerca un amico" autocomplete="off">
+        </div>
+    </form>
+
+    <div id="chat-results">
+        <!-- nessuna conversazione e nessuna ricerca -->
+        <div th:if="${#lists.isEmpty(conversations) and q.isEmpty()}" class="card card-body text-center text-muted shadow-sm">
+            <p class="mb-2"><i class="bi bi-chat-dots display-6"></i></p>
+            <th:block th:if="${#lists.isEmpty(friends)}">
+                Puoi chattare con i tuoi amici. <a th:href="@{/friends/search}">Cerca motociclisti</a> e aggiungili!
+            </th:block>
+            <th:block th:unless="${#lists.isEmpty(friends)}">
+                Nessuna conversazione. Cerca un amico qui sopra o usa "Nuova chat".
+            </th:block>
+        </div>
+
+        <!-- ricerca senza risultati -->
+        <p th:if="${!q.isEmpty() and #lists.isEmpty(conversations) and #lists.isEmpty(friendMatches)}"
+           class="text-muted text-center my-4">
+            Nessun amico trovato per "<span th:text="${q}">q</span>".
+        </p>
+
+        <h2 th:if="${!q.isEmpty() and !#lists.isEmpty(conversations)}" class="h6 text-uppercase text-muted">Conversazioni</h2>
+        <div id="inbox" class="list-group shadow-sm mb-4" th:unless="${#lists.isEmpty(conversations)}">
+            <a th:each="c : ${conversations}" th:href="@{/chat/{id}(id=${c.id})}"
+               th:attr="data-conversation-id=${c.id}"
+               class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3"
+               th:classappend="${c.unread > 0} ? 'fw-semibold'">
+                <th:block th:replace="~{fragments/avatar :: avatar(${c.otherUsername}, ${c.otherPhotoId}, 'avatar-sm')}"></th:block>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex justify-content-between gap-2">
+                        <span>
+                            <span th:text="${c.otherName}">Nome</span>
+                            <span class="text-muted small fw-normal">@<span th:text="${c.otherUsername}">u</span></span>
+                        </span>
+                        <time class="small text-muted flex-shrink-0" data-local
+                              th:datetime="${c.lastMessageAt}" th:text="${#temporals.format(c.lastMessageAt, 'dd/MM HH:mm')}">--</time>
+                    </div>
+                    <div class="d-flex justify-content-between gap-2">
+                        <span class="inbox-preview small text-muted text-truncate"
+                              th:text="${(c.lastFromMe ? 'Tu: ' : '') + c.lastBody}">anteprima</span>
+                        <span class="inbox-unread badge rounded-pill text-bg-warning"
+                              th:classappend="${c.unread == 0} ? 'd-none'" th:text="${c.unread}">0</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- amici trovati senza conversazione -->
+        <th:block th:unless="${#lists.isEmpty(friendMatches)}">
+            <h2 class="h6 text-uppercase text-muted">Amici</h2>
+            <div class="list-group shadow-sm">
+                <a th:each="f : ${friendMatches}" th:href="@{/chat/with/{u}(u=${f.username})}"
+                   class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
+                    <th:block th:replace="~{fragments/avatar :: avatar(${f.username}, ${f.photoId}, 'avatar-sm')}"></th:block>
+                    <div class="flex-grow-1 min-w-0">
+                        <span th:text="${f.shownName}">Nome</span>
+                        <span class="text-muted small">@<span th:text="${f.username}">u</span></span>
+                    </div>
+                    <span class="btn btn-dark btn-sm"><i class="bi bi-chat-dots"></i> Scrivi</span>
+                </a>
+            </div>
+        </th:block>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script th:src="@{/js/inbox.js}"></script>
+</body>
+</html>

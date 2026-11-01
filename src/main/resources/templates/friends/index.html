@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Amici')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 860px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <h1 class="h3 mb-0">Amici</h1>
+        <form th:action="@{/friends/search}" method="get" class="d-flex gap-2" role="search">
+            <input type="search" name="q" class="form-control" placeholder="Cerca per username" aria-label="Cerca per username">
+            <button class="btn btn-dark" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+
+    <section th:unless="${#lists.isEmpty(overview.incoming)}" class="mb-4">
+        <h2 class="h6 text-uppercase text-muted">
+            Richieste ricevute <span class="badge text-bg-warning" th:text="${#lists.size(overview.incoming)}">1</span>
+        </h2>
+        <ul class="list-group shadow-sm">
+            <th:block th:each="card : ${overview.incoming}"><li th:replace="~{fragments/friends :: row(${card}, '/friends')}"></li></th:block>
+        </ul>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h6 text-uppercase text-muted">
+            I tuoi amici <span class="badge text-bg-secondary" th:text="${#lists.size(overview.friends)}">0</span>
+        </h2>
+        <div th:if="${#lists.isEmpty(overview.friends)}" class="card card-body text-center text-muted shadow-sm">
+            <p class="mb-2"><i class="bi bi-people display-6"></i></p>
+            Non hai ancora amici. Cerca altri motociclisti per username e invia una richiesta!
+        </div>
+        <ul th:unless="${#lists.isEmpty(overview.friends)}" class="list-group shadow-sm">
+            <th:block th:each="card : ${overview.friends}"><li th:replace="~{fragments/friends :: row(${card}, '/friends')}"></li></th:block>
+        </ul>
+    </section>
+
+    <section th:unless="${#lists.isEmpty(overview.outgoing)}" class="mb-4">
+        <h2 class="h6 text-uppercase text-muted">Richieste inviate</h2>
+        <ul class="list-group shadow-sm">
+            <th:block th:each="card : ${overview.outgoing}"><li th:replace="~{fragments/friends :: row(${card}, '/friends')}"></li></th:block>
+        </ul>
+    </section>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

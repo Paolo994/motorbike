@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Amministrazione')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 960px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+    <h1 class="h3 mb-4"><i class="bi bi-shield-lock"></i> Amministrazione</h1>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h5"><i class="bi bi-person-bounding-box"></i> Foto profilo</h2>
+                    <p class="display-6 mb-1" th:text="${pendingPhotoCount}">0</p>
+                    <p class="text-muted small">in attesa di approvazione</p>
+                    <a th:href="@{/admin/photos}" class="btn btn-dark btn-sm">Modera le foto</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h5"><i class="bi bi-newspaper"></i> Notizie</h2>
+                    <p class="display-6 mb-1" th:text="${newsStats.articles}">0</p>
+                    <p class="text-muted small mb-1">articoli da <span th:text="${newsStats.enabledSources}">0</span> fonti attive</p>
+                    <p class="small mb-2" th:if="${newsStats.failingSources > 0}">
+                        <span class="badge text-bg-danger" th:text="${newsStats.failingSources} + ' fonti con errori'">errori</span>
+                    </p>
+                    <p class="small text-muted" th:if="${newsStats.lastFetch}">
+                        Ultima lettura: <time data-local th:datetime="${newsStats.lastFetch}" th:text="${newsStats.lastFetch}">ora</time>
+                    </p>
+                    <a th:href="@{/admin/news}" class="btn btn-dark btn-sm">Fonti e topic</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h5"><i class="bi bi-fuel-pump"></i> Prezzi carburante</h2>
+                    <p class="display-6 mb-1" th:text="${#numbers.formatInteger(fuelStations, 1, 'POINT')}">0</p>
+                    <p class="text-muted small mb-1">distributori (open data MIMIT)</p>
+                    <p class="small mb-1" th:if="${fuelAverage}">Media benzina self:
+                        <strong th:text="${#numbers.formatDecimal(fuelAverage, 1, 'POINT', 3, 'COMMA')} + ' €/l'">1,800</strong></p>
+                    <p class="small text-muted mb-2" th:if="${fuelRun}">
+                        Ultimo import: <time data-local th:datetime="${fuelRun.startedAt}" th:text="${fuelRun.startedAt}">ora</time>
+                        <span class="badge" th:classappend="${fuelRun.status == 'OK'} ? 'text-bg-success' : (${fuelRun.status == 'ERROR'} ? 'text-bg-danger' : 'text-bg-secondary')"
+                              th:text="${fuelRun.status}">OK</span>
+                        <span class="d-block text-danger" th:if="${fuelRun.error}" th:text="${fuelRun.error}">errore</span>
+                    </p>
+                    <form th:action="@{/admin/fuel/import}" method="post">
+                        <button class="btn btn-dark btn-sm" th:disabled="${fuelRunning}"
+                                th:text="${fuelRunning} ? 'Import in corso…' : 'Aggiorna ora'">Aggiorna ora</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Accedi')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="card auth-card shadow-sm">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-3">Accedi</h1>
+
+            <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+            <div th:if="${param.error}" class="alert alert-danger">Credenziali non valide.</div>
+            <div th:if="${param.logout}" class="alert alert-success">Sei uscito correttamente.</div>
+            <div th:if="${param.disabled}" class="alert alert-warning">
+                Account non ancora attivo: apri il link che ti abbiamo inviato via email.
+                <form th:action="@{/verify/resend}" method="post" class="mt-2">
+                    <div class="input-group input-group-sm">
+                        <input type="email" name="email" class="form-control" placeholder="La tua email" required>
+                        <button class="btn btn-outline-dark" type="submit">Reinvia link</button>
+                    </div>
+                </form>
+            </div>
+
+            <form th:action="@{/login}" method="post">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username o email</label>
+                    <input type="text" id="username" name="username" class="form-control" required autofocus
+                           autocomplete="username">
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required
+                           autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-dark w-100">Accedi</button>
+            </form>
+
+            <p class="text-center mt-3 mb-0">Non hai un account? <a th:href="@{/register}">Registrati</a></p>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

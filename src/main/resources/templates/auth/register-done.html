@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Controlla la tua email')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container">
+    <div class="card auth-card shadow-sm">
+        <div class="card-body p-4 text-center">
+            <i class="bi bi-envelope-check display-4 text-warning"></i>
+            <h1 class="h4 mt-3">Quasi fatto!</h1>
+            <p>
+                Ti abbiamo inviato un link di conferma
+                <th:block th:if="${email}">all'indirizzo <strong th:text="${email}">email</strong></th:block>.
+                Aprilo per attivare l'account.
+            </p>
+            <p class="text-muted small mb-0">Il link scade dopo 24 ore.</p>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

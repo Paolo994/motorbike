@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${stageId == null} ? 'Nuova tappa' : 'Modifica tappa')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+
+<main class="container">
+    <a th:href="@{/trips/{id}(id=${trip.id})}" class="small text-decoration-none"><i class="bi bi-arrow-left"></i> <span th:text="${trip.title}">Viaggio</span></a>
+    <h1 class="h3 mt-2 mb-4" th:text="${stageId == null} ? 'Nuova tappa' : 'Modifica tappa'">Nuova tappa</h1>
+
+    <form id="stage-form" th:object="${form}" method="post"
+          th:action="${stageId == null} ? @{/trips/{id}/stages(id=${trip.id})} : @{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${stageId})}">
+        <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">Controlla i campi evidenziati.</div>
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <!-- Dati generali -->
+                <div class="card shadow-sm mb-4"><div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-8">
+                            <label for="title" class="form-label">Titolo</label>
+                            <input type="text" th:field="*{title}" class="form-control" maxlength="120"
+                                   th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'">
+                            <div class="invalid-feedback" th:errors="*{title}"></div>
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="stageDate" class="form-label">Giorno</label>
+                            <input type="date" th:field="*{stageDate}" class="form-control">
+                        </div>
+                    </div>
+                </div></div>
+
+                <!-- Percorso -->
+                <div class="card shadow-sm mb-4"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Percorso</h2>
+                    <div class="mb-3"><th:block th:replace="~{trips/fragments :: loc('start', 'startName', 'startLat', 'startLon', 'Partenza')}"></th:block></div>
+
+                    <div id="stops" th:attr="data-max=${maxStops}">
+                        <div th:each="stop, it : *{stops}" class="stop-row border rounded p-2 mb-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-semibold">Fermata <span class="stop-number" th:text="${it.count}">1</span></span>
+                                <button type="button" class="btn btn-sm btn-link text-danger stop-remove">Rimuovi</button>
+                            </div>
+                            <div class="loc" data-loc="stop">
+                                <div class="input-group input-group-sm">
+                                    <select class="form-select" style="max-width: 160px" th:field="*{stops[__${it.index}__].type}">
+                                        <option th:each="t : ${stopTypes}" th:value="${t}" th:text="${t.label}">tipo</option>
+                                    </select>
+                                    <input type="text" class="form-control" th:field="*{stops[__${it.index}__].name}" data-field="name"
+                                           placeholder="Nome o luogo da cercare" maxlength="150" autocomplete="off">
+                                    <button class="btn btn-outline-dark loc-search" type="button" aria-label="Cerca"><i class="bi bi-search"></i></button>
+                                    <button class="btn btn-outline-secondary loc-pick" type="button" title="Scegli sulla mappa"><i class="bi bi-geo-alt"></i></button>
+                                </div>
+                                <input type="hidden" th:field="*{stops[__${it.index}__].lat}" data-field="lat">
+                                <input type="hidden" th:field="*{stops[__${it.index}__].lon}" data-field="lon">
+                                <div class="small text-success loc-status"></div>
+                                <div class="list-group loc-results mt-1"></div>
+                                <input type="text" class="form-control form-control-sm mt-1" th:field="*{stops[__${it.index}__].notes}"
+                                       placeholder="Note (facoltative)" maxlength="500">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" id="add-stop" class="btn btn-sm btn-outline-dark mb-3"><i class="bi bi-plus"></i> Aggiungi fermata</button>
+                    <div class="small text-muted mb-3">Le fermate (rifornimento, pranzo, panorami…) diventano punti di passaggio del percorso.</div>
+
+                    <div class="mb-3"><th:block th:replace="~{trips/fragments :: loc('end', 'endName', 'endLat', 'endLon', 'Arrivo')}"></th:block></div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" th:field="*{avoidMotorways}">
+                        <label class="form-check-label" for="avoidMotorways1">Evita le autostrade <span class="text-muted small">(strade più belle, più lento)</span></label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" th:field="*{avoidTolls}">
+                        <label class="form-check-label" for="avoidTolls1">Evita i pedaggi</label>
+                    </div>
+                </div></div>
+            </div>
+
+            <div class="col-lg-6">
+                <div id="stage-form-map" class="trip-map shadow-sm mb-2" aria-label="Mappa per scegliere i punti"></div>
+                <p class="small text-muted mb-4"><i class="bi bi-hand-index"></i> Premi <i class="bi bi-geo-alt"></i> accanto a un luogo e poi clicca sulla mappa per sceglierlo.</p>
+
+                <!-- Indicazioni e cosa vedere -->
+                <div class="card shadow-sm mb-4"><div class="card-body">
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Indicazioni per il gruppo</label>
+                        <textarea th:field="*{notes}" class="form-control" rows="4" maxlength="4000"
+                                  placeholder="Ritrovo, orari, tratti impegnativi, dove fare benzina, consigli di guida…"></textarea>
+                    </div>
+                    <div>
+                        <label for="highlights" class="form-label">Cosa vedere</label>
+                        <textarea th:field="*{highlights}" class="form-control" rows="4" maxlength="4000"
+                                  placeholder="Panorami, borghi, musei, piatti tipici da provare…"></textarea>
+                    </div>
+                </div></div>
+
+                <!-- Alloggio -->
+                <div class="card shadow-sm mb-4"><div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Alloggio a fine tappa</h2>
+                    <div class="row g-2">
+                        <div class="col-sm-4">
+                            <select th:field="*{accommodationType}" class="form-select" aria-label="Tipo di alloggio">
+                                <option value="">— Tipo —</option>
+                                <option th:each="t : ${accommodationTypes}" th:value="${t}" th:text="${t.label}">tipo</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-8">
+                            <input type="text" th:field="*{accommodationName}" class="form-control" placeholder="Nome" maxlength="150">
+                        </div>
+                        <div class="col-sm-8">
+                            <input type="text" th:field="*{accommodationAddress}" class="form-control" placeholder="Indirizzo" maxlength="250">
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0" th:field="*{accommodationPrice}" class="form-control"
+                                       th:classappend="${#fields.hasErrors('accommodationPrice')} ? 'is-invalid'" placeholder="Prezzo">
+                                <span class="input-group-text">€</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <input type="url" th:field="*{accommodationUrl}" class="form-control" placeholder="Sito o link alla prenotazione (https://…)"
+                                   th:classappend="${#fields.hasErrors('accommodationUrl')} ? 'is-invalid'" maxlength="500">
+                            <div class="invalid-feedback" th:errors="*{accommodationUrl}"></div>
+                        </div>
+                    </div>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mb-5">
+            <button type="submit" class="btn btn-dark btn-lg">Salva e calcola il percorso</button>
+            <a th:href="${stageId == null} ? @{/trips/{id}(id=${trip.id})} : @{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${stageId})}"
+               class="btn btn-outline-secondary btn-lg">Annulla</a>
+        </div>
+    </form>
+
+    <form th:if="${stageId != null}" th:action="@{/trips/{id}/stages/{sid}/delete(id=${trip.id}, sid=${stageId})}" method="post"
+          class="mb-5" onsubmit="return confirm('Eliminare questa tappa?');">
+        <button class="btn btn-link text-danger p-0"><i class="bi bi-trash"></i> Elimina la tappa</button>
+    </form>
+</main>
+
+<!-- Modello di riga per le nuove fermate (__i__ viene sostituito dall'indice) -->
+<template id="stop-template">
+    <div class="stop-row border rounded p-2 mb-2 bg-light">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-semibold">Fermata <span class="stop-number">1</span></span>
+            <button type="button" class="btn btn-sm btn-link text-danger stop-remove">Rimuovi</button>
+        </div>
+        <div class="loc" data-loc="stop">
+            <div class="input-group input-group-sm">
+                <select class="form-select" style="max-width: 160px" name="stops[__i__].type">
+                    <option th:each="t : ${stopTypes}" th:value="${t}" th:text="${t.label}">tipo</option>
+                </select>
+                <input type="text" class="form-control" name="stops[__i__].name" data-field="name"
+                       placeholder="Nome o luogo da cercare" maxlength="150" autocomplete="off">
+                <button class="btn btn-outline-dark loc-search" type="button" aria-label="Cerca"><i class="bi bi-search"></i></button>
+                <button class="btn btn-outline-secondary loc-pick" type="button" title="Scegli sulla mappa"><i class="bi bi-geo-alt"></i></button>
+            </div>
+            <input type="hidden" name="stops[__i__].lat" data-field="lat">
+            <input type="hidden" name="stops[__i__].lon" data-field="lon">
+            <div class="small text-success loc-status"></div>
+            <div class="list-group loc-results mt-1"></div>
+            <input type="text" class="form-control form-control-sm mt-1" name="stops[__i__].notes" placeholder="Note (facoltative)" maxlength="500">
+        </div>
+    </div>
+</template>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script th:src="@{/js/stage-form.js}"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Pulsanti di azione in base alla relazione. back = pagina a cui tornare dopo l'azione -->
+<div th:fragment="actions(username, relation, back)" class="d-flex flex-wrap gap-2 justify-content-end">
+    <th:block th:switch="${relation.name()}">
+        <form th:case="'NONE'" th:action="@{/friends/{u}/request(u=${username})}" method="post">
+            <input type="hidden" name="back" th:value="${back}">
+            <button class="btn btn-warning btn-sm"><i class="bi bi-person-plus"></i> Aggiungi</button>
+        </form>
+
+        <th:block th:case="'INCOMING'">
+            <form th:action="@{/friends/{u}/accept(u=${username})}" method="post">
+                <input type="hidden" name="back" th:value="${back}">
+                <button class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> Accetta</button>
+            </form>
+            <form th:action="@{/friends/{u}/decline(u=${username})}" method="post">
+                <input type="hidden" name="back" th:value="${back}">
+                <button class="btn btn-outline-secondary btn-sm">Rifiuta</button>
+            </form>
+        </th:block>
+
+        <form th:case="'OUTGOING'" th:action="@{/friends/{u}/cancel(u=${username})}" method="post">
+            <input type="hidden" name="back" th:value="${back}">
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-hourglass-split"></i> Annulla richiesta</button>
+        </form>
+
+        <th:block th:case="'FRIENDS'">
+            <span class="badge text-bg-success align-self-center"><i class="bi bi-people-fill"></i> Amici</span>
+            <a class="btn btn-dark btn-sm" th:href="@{/chat/with/{u}(u=${username})}"><i class="bi bi-chat-dots"></i> Chat</a>
+            <form th:action="@{/friends/{u}/remove(u=${username})}" method="post"
+                  onsubmit="return confirm('Rimuovere questo utente dagli amici?');">
+                <input type="hidden" name="back" th:value="${back}">
+                <button class="btn btn-outline-danger btn-sm">Rimuovi</button>
+            </form>
+        </th:block>
+    </th:block>
+</div>
+
+<!-- Riga di una lista utenti -->
+<li th:fragment="row(card, back)" class="list-group-item d-flex align-items-center gap-3 py-3">
+    <th:block th:replace="~{fragments/avatar :: avatar(${card.username}, ${card.photoId}, 'avatar-sm')}"></th:block>
+    <div class="flex-grow-1 min-w-0">
+        <a class="fw-semibold text-decoration-none text-dark" th:href="@{/u/{u}(u=${card.username})}"
+           th:text="${card.shownName}">Nome</a>
+        <div class="small text-muted text-truncate">
+            @<span th:text="${card.username}">username</span>
+            <th:block th:if="${card.bikeModel}"> · <i class="bi bi-bicycle"></i> <span th:text="${card.bikeModel}">moto</span></th:block>
+            <th:block th:if="${card.city}"> · <i class="bi bi-geo-alt"></i> <span th:text="${card.city}">città</span></th:block>
+        </div>
+    </div>
+    <div th:replace="~{fragments/friends :: actions(${card.username}, ${card.relation}, ${back})}"></div>
+</li>
+
+</body>
+</html>

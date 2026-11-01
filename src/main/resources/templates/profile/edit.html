@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Modifica profilo')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+<main class="container" style="max-width: 760px">
+    <th:block th:replace="~{fragments/layout :: flash}"></th:block>
+
+    <!-- Foto profilo -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <h2 class="h5 mb-3">Foto profilo</h2>
+            <div class="d-flex flex-wrap align-items-center gap-4">
+                <div class="text-center">
+                    <th:block th:replace="~{fragments/avatar :: avatar(${#authentication.name}, ${currentPhotoId}, 'avatar-lg')}"></th:block>
+                    <div class="small text-muted mt-1" th:text="${currentPhotoId != null} ? 'Foto attuale' : 'Nessuna foto'">Foto attuale</div>
+                </div>
+
+                <div th:if="${photoInReview != null and photoInReview.status.name() == 'PENDING'}" class="text-center">
+                    <img th:src="@{/photos/{id}(id=${photoInReview.id})}" class="avatar avatar-lg opacity-75" alt="Foto in attesa">
+                    <div class="small mt-1"><span class="badge text-bg-warning"><i class="bi bi-hourglass-split"></i> In attesa di approvazione</span></div>
+                </div>
+
+                <div class="flex-grow-1" style="min-width: 240px">
+                    <div th:if="${photoInReview != null and photoInReview.status.name() == 'REJECTED'}" class="alert alert-warning py-2 small">
+                        <strong>L'ultima foto non è stata approvata.</strong>
+                        <span th:if="${photoInReview.rejectionReason}" th:text="'Motivo: ' + ${photoInReview.rejectionReason}">Motivo</span>
+                    </div>
+                    <!-- token CSRF anche nell'URL: va letto prima del parsing multipart -->
+                    <form id="photo-form" th:action="@{/profile/photo(_csrf=${_csrf.token})}" method="post" enctype="multipart/form-data"
+                          onsubmit="var f = document.getElementById('photo-file').files[0];
+                                    if (f &amp;&amp; f.size > 5 * 1024 * 1024) {
+                                        document.getElementById('photo-too-big').classList.remove('d-none'); return false; }
+                                    return true;">
+                        <label for="photo-file" class="form-label small text-muted mb-1">
+                            JPG, PNG o GIF, massimo 5 MB. Verrà ritagliata al centro in formato quadrato.
+                        </label>
+                        <div class="input-group">
+                            <input id="photo-file" type="file" name="file" class="form-control" accept="image/jpeg,image/png,image/gif" required>
+                            <button class="btn btn-dark" type="submit"><i class="bi bi-upload"></i> Carica</button>
+                        </div>
+                        <div id="photo-too-big" class="text-danger small d-none">Il file è troppo grande (massimo 5 MB).</div>
+                        <div class="form-text">La foto sarà visibile agli altri dopo l'approvazione di un amministratore.</div>
+                    </form>
+                    <form th:if="${currentPhotoId != null or photoInReview != null}" th:action="@{/profile/photo/delete}" method="post"
+                          class="mt-2" onsubmit="return confirm('Rimuovere la foto profilo?');">
+                        <button class="btn btn-link btn-sm text-danger p-0" type="submit">Rimuovi foto</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-4">Modifica profilo</h1>
+
+            <form th:action="@{/profile/edit}" th:object="${form}" method="post">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="displayName" class="form-label">Nome visualizzato</label>
+                        <input type="text" th:field="*{displayName}" class="form-control"
+                               th:classappend="${#fields.hasErrors('displayName')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{displayName}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="city" class="form-label">Città</label>
+                        <input type="text" th:field="*{city}" class="form-control"
+                               th:classappend="${#fields.hasErrors('city')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{city}"></div>
+                    </div>
+                    <div class="col-12">
+                        <label for="bio" class="form-label">Bio</label>
+                        <textarea th:field="*{bio}" class="form-control" rows="3"
+                                  th:classappend="${#fields.hasErrors('bio')} ? 'is-invalid'"></textarea>
+                        <div class="invalid-feedback" th:errors="*{bio}"></div>
+                    </div>
+                </div>
+
+                <h2 class="h6 text-uppercase text-muted mt-4">La mia moto</h2>
+                <p class="small text-muted">Consumo e serbatoio servono a calcolare costi e soste carburante dei road trip. Sono visibili solo a te.</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="bikeModel" class="form-label">Modello</label>
+                        <input type="text" th:field="*{bikeModel}" class="form-control" placeholder="es. Ducati Multistrada V4"
+                               th:classappend="${#fields.hasErrors('bikeModel')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{bikeModel}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="fuelConsumptionKmPerL" class="form-label">Consumo (km/l)</label>
+                        <input type="number" step="0.1" th:field="*{fuelConsumptionKmPerL}" class="form-control"
+                               th:classappend="${#fields.hasErrors('fuelConsumptionKmPerL')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{fuelConsumptionKmPerL}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="tankCapacityL" class="form-label">Serbatoio (l)</label>
+                        <input type="number" step="0.1" th:field="*{tankCapacityL}" class="form-control"
+                               th:classappend="${#fields.hasErrors('tankCapacityL')} ? 'is-invalid'">
+                        <div class="invalid-feedback" th:errors="*{tankCapacityL}"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark">Salva</button>
+                    <a th:href="@{/profile}" class="btn btn-outline-secondary">Annulla</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

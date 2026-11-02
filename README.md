@@ -1,14 +1,19 @@
 # MotoRide
 
-Social network e pianificatore di road trip per motociclisti.
+Web app for motorcyclists: find friends and chat in real time, follow MotoGP and motorcycle news, and plan road trips
+stage by stage, with routes, stops, accommodation, real fuel costs and AI-powered suggestions of places to visit,
+eat and sleep.
 
-**Stack:** Java 21 · Spring Boot 4.1 · Spring Security 7 · Thymeleaf + Bootstrap 5 · Leaflet · PostgreSQL 17 · Flyway · Mailpit (dev)
+- **Backend**: Spring Boot 4.1, Java 21, Spring Security 7 (registration with email verification, form login),
+  JPA + Flyway, PostgreSQL 17, WebSocket/STOMP for chat and notifications
+- **Frontend**: server-rendered Thymeleaf pages with Bootstrap 5 and Leaflet maps. Responsive, so it also works
+  from a smartphone browser
+- **External services**: Valhalla (motorcycle routing), Nominatim (geocoding), Italian MIMIT open data (fuel prices),
+  RSS feeds (news); optional AI mode with Google Places and Claude
+- **Runs with**: Docker Compose (app, PostgreSQL, Mailpit for development emails)
 
-## Documentazione tecnica
-
-- [Architettura](docs/architettura.md): componenti, moduli, tempo reale, sicurezza, modello dei dati, test
-- [Infrastruttura](docs/infrastruttura.md): container, rete locale, configurazione, job, servizi esterni, produzione
-- [Flussi](docs/flussi.md): registrazione, amicizie, chat, foto, agente notizie, tappe e costi, permessi
+📐 Architecture and flow diagrams (in Italian):
+[docs/architettura.md](docs/architettura.md) · [docs/infrastruttura.md](docs/infrastruttura.md) · [docs/flussi.md](docs/flussi.md)
 
 ## Avvio con Docker (tutto in container)
 

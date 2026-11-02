@@ -92,13 +92,28 @@ public class GeocodingService {
         if (response.statusCode() != 200) {
             throw new IllegalStateException("Nominatim HTTP " + response.statusCode());
         }
+        return parse(json.readTree(response.body()));
+    }
+
+    /** Tipi Nominatim di aree amministrative: le loro coordinate sono un punto interno qualsiasi, non la città. */
+    private static final java.util.Set<String> ADMIN_AREAS =
+        java.util.Set.of("province", "county", "state", "region", "country", "state_district");
+
+    /**
+     * Città e luoghi veri prima delle aree amministrative: cercando "Siena" il primo risultato di Nominatim
+     * può essere la provincia, che ha come coordinate un punto a decine di km dalla città.
+     */
+    static List<Place> parse(JsonNode results) {
         List<Place> places = new ArrayList<>();
-        for (JsonNode n : json.readTree(response.body())) {
+        List<Place> adminAreas = new ArrayList<>();
+        for (JsonNode n : results) {
             String label = n.path("display_name").asString("");
             String name = n.path("name").asString("");
-            places.add(new Place(name.isBlank() ? label.split(",")[0] : name, label,
-                Double.parseDouble(n.path("lat").asString("0")), Double.parseDouble(n.path("lon").asString("0"))));
+            Place place = new Place(name.isBlank() ? label.split(",")[0] : name, label,
+                Double.parseDouble(n.path("lat").asString("0")), Double.parseDouble(n.path("lon").asString("0")));
+            (ADMIN_AREAS.contains(n.path("addresstype").asString("")) ? adminAreas : places).add(place);
         }
+        places.addAll(adminAreas);
         return places;
     }
 

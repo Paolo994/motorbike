@@ -48,6 +48,11 @@ services:
       # indirizzo usato nei link delle email: per l'accesso dalla rete locale impostalo in .env
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # modalità AI (spenta se AI_ENABLED non è true); le chiavi arrivano solo da .env
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_MODEL: ${AI_MODEL:-claude-opus-5-5}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_PLACES_API_KEY: ${GOOGLE_PLACES_API_KEY:-}
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
       SPRING_THYMELEAF_CACHE: "true"
     ports:

@@ -173,7 +173,47 @@ flowchart LR
     COST --> TOT["Totale viaggio =<br/>carburante + alloggi"]
 ```
 
-## 7. Permessi in un road trip
+## 7. Consigli AI per una tappa
+
+Solo con la modalità AI accesa. Google fornisce i luoghi reali, Claude sceglie e motiva, il server controlla.
+
+```mermaid
+sequenceDiagram
+    actor U as Editor (browser)
+    participant SC as StageSuggestionController
+    participant SS as StageSuggestionService
+    participant TS as TripService
+    participant GP as Google Places
+    participant CL as Claude
+    participant RS as RoutingService
+
+    U->>SC: POST .../suggestions (preferenze facoltative)
+    SC->>SS: generate(utente, tappa, preferenze)
+    SS->>TS: dati della tappa, l'utente può modificarla?
+    SS->>SS: limite orario per utente
+    SS->>GP: alloggi vicino all'arrivo
+    SS->>GP: cose da vedere a metà percorso e all'arrivo
+    SS->>GP: ristoranti a metà percorso
+    GP-->>SS: luoghi con valutazioni e recensioni
+    SS->>CL: tappa + candidati, output strutturato
+    alt Claude risponde
+        CL-->>SS: id scelti e motivazioni
+        SS->>SS: tiene solo id esistenti, niente doppioni
+    else errore o chiave mancante
+        SS->>SS: ordina per valutazione e recensioni
+    end
+    SS->>SS: cache in memoria (6 ore, finché la tappa non cambia)
+    SC-->>U: pagina della tappa con i consigli
+    U->>SC: "Aggiungi come fermata" su un ristorante
+    SC->>SS: addAsStop(luogo dalla cache del server)
+    SS->>TS: aggiunge la fermata
+    TS->>RS: ricalcola il percorso passando dal ristorante
+```
+
+Il browser invia solo l'id del luogo: nome e coordinate della fermata vengono dalla cache del server,
+non da dati del client.
+
+## 8. Permessi in un road trip
 
 | Azione | Organizzatore | Editor | Sola lettura | Non partecipante |
 |---|:---:|:---:|:---:|:---:|
@@ -181,6 +221,7 @@ flowchart LR
 | Aggiungere, modificare, riordinare tappe | ✔ | ✔ | 403 | 404 |
 | Modificare o eliminare il viaggio | ✔ | 403 | 403 | 404 |
 | Invitare amici e cambiare ruoli | ✔ | 403 | 403 | 404 |
+| Generare consigli AI e usarli | ✔ | ✔ | 403 (vede quelli già generati) | 404 |
 | Lasciare il viaggio | — | ✔ | ✔ | — |
 
 Si possono invitare solo i propri amici; l'invitato riceve una notifica in tempo reale.

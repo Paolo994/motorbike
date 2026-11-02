@@ -23,6 +23,9 @@
         <div class="d-flex gap-2">
             <a th:if="${detail.prevStageId}" th:href="@{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${detail.prevStageId})}" class="btn btn-light" aria-label="Tappa precedente"><i class="bi bi-chevron-left"></i></a>
             <a th:if="${detail.nextStageId}" th:href="@{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${detail.nextStageId})}" class="btn btn-light" aria-label="Tappa successiva"><i class="bi bi-chevron-right"></i></a>
+            <a th:href="${s.googleMaps.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" title="Apri il percorso in Google Maps">
+                <i class="bi bi-google"></i> <span class="d-none d-sm-inline">Google Maps</span>
+            </a>
             <a th:if="${trip.canEdit}" th:href="@{/trips/{id}/stages/{sid}/edit(id=${trip.id}, sid=${s.id})}" class="btn btn-outline-dark"><i class="bi bi-pencil"></i> Modifica</a>
         </div>
     </div>
@@ -97,19 +100,47 @@
                 </div>
             </div>
 
-            <!-- Indicazioni stradali -->
-            <div class="card shadow-sm mb-4" th:unless="${#lists.isEmpty(s.directions)}">
+            <!-- Navigazione e indicazioni stradali -->
+            <div class="card shadow-sm mb-4" id="indicazioni">
                 <div class="card-body">
-                    <h2 class="h6 text-uppercase text-muted"><i class="bi bi-sign-turn-right"></i> Indicazioni stradali</h2>
-                    <details>
-                        <summary class="small mb-2" th:text="${#lists.size(s.directions)} + ' indicazioni svolta per svolta'">indicazioni</summary>
-                        <ol class="directions small ps-3 mb-0">
-                            <li th:each="d : ${s.directions}">
-                                <span th:text="${d.text}">Svolta a destra</span>
-                                <span class="text-muted" th:if="${d.km > 0}" th:text="'· ' + ${#numbers.formatDecimal(d.km, 1, 'POINT', 1, 'COMMA')} + ' km'"></span>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <h2 class="h6 text-uppercase text-muted mb-0"><i class="bi bi-sign-turn-right"></i> Navigazione</h2>
+                        <a th:href="${s.googleMaps.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+                            <i class="bi bi-google"></i> Apri in Google Maps
+                        </a>
+                    </div>
+                    <p class="small text-muted mb-2">
+                        Il percorso si apre con partenza, <th:block th:unless="${#lists.isEmpty(s.stops)}">fermate </th:block>e arrivo già impostati.
+                        <th:block th:if="${s.avoidMotorways or s.avoidTolls}">Google Maps non riceve l'opzione
+                            <strong th:text="${s.avoidMotorways} ? 'evita autostrade' : 'evita pedaggi'">evita autostrade</strong>:
+                            attivala in <em>Opzioni percorso</em> dopo l'apertura.</th:block>
+                        <th:block th:if="${s.googleMaps.exceedsMobileLimit()}">Dal telefono Google Maps usa solo le prime 3 fermate.</th:block>
+                        <th:block th:if="${s.googleMaps.dropped > 0}">Le ultime <span th:text="${s.googleMaps.dropped}">2</span> fermate non sono incluse (Google Maps ne accetta al massimo 9).</th:block>
+                    </p>
+
+                    <th:block th:unless="${#lists.isEmpty(s.directions)}">
+                        <ol class="steps list-unstyled mb-0">
+                            <li th:each="d, it : ${s.directions}" th:if="${it.index < 6}" class="step">
+                                <span class="step-icon"><i class="bi" th:classappend="${d.icon}"></i></span>
+                                <span class="step-text" th:text="${d.text}">Svolta a destra</span>
+                                <span class="step-km" th:if="${d.km > 0}" th:text="${#numbers.formatDecimal(d.km, 1, 'POINT', 1, 'COMMA')} + ' km'">1,2 km</span>
                             </li>
                         </ol>
-                    </details>
+                        <th:block th:if="${#lists.size(s.directions) > 6}">
+                            <div class="collapse" id="altre-indicazioni">
+                                <ol class="steps list-unstyled mb-0">
+                                    <li th:each="d, it : ${s.directions}" th:if="${it.index >= 6}" class="step">
+                                        <span class="step-icon"><i class="bi" th:classappend="${d.icon}"></i></span>
+                                        <span class="step-text" th:text="${d.text}">Svolta a destra</span>
+                                        <span class="step-km" th:if="${d.km > 0}" th:text="${#numbers.formatDecimal(d.km, 1, 'POINT', 1, 'COMMA')} + ' km'">1,2 km</span>
+                                    </li>
+                                </ol>
+                            </div>
+                            <button class="btn btn-link btn-sm px-0 mt-1" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#altre-indicazioni" aria-expanded="false" aria-controls="altre-indicazioni"
+                                    th:text="'Mostra tutte le ' + ${#lists.size(s.directions)} + ' indicazioni'">Mostra tutte</button>
+                        </th:block>
+                    </th:block>
                 </div>
             </div>
         </div>
@@ -169,6 +200,113 @@
             </div>
         </div>
     </div>
+
+    <!-- Consigli AI: compaiono solo se la modalità è accesa (app.ai.enabled) -->
+    <section id="consigli" class="mt-4 mb-5" th:if="${aiStatus != 'DISABLED'}">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h4 mb-0"><span class="badge ai-badge me-1"><i class="bi bi-stars"></i> AI</span> Consigli per la tappa</h2>
+        </div>
+
+        <div th:if="${aiStatus == 'MISSING_PLACES_KEY'}" class="alert alert-secondary small">
+            I consigli non sono ancora disponibili: manca la configurazione di Google Places.
+        </div>
+
+        <th:block th:if="${aiStatus == 'READY'}">
+            <form th:if="${trip.canEdit}" th:action="@{/trips/{id}/stages/{sid}/suggestions(id=${trip.id}, sid=${s.id})}"
+                  method="post" class="card card-body shadow-sm mb-4"
+                  onsubmit="var b=event.submitter; if (b) { var h=document.createElement('input'); h.type='hidden'; h.name=b.name; h.value=b.value; this.appendChild(h); }
+                            this.querySelectorAll('button').forEach(function(x){ x.disabled=true; });
+                            if (b) { b.innerHTML='<span class=&quot;spinner-border spinner-border-sm&quot;></span> Sto cercando…'; }">
+                <label for="preferences" class="form-label small text-muted mb-1">
+                    Cosa cercate? (facoltativo) Ad esempio: "pranzo veloce ed economico", "musei e borghi", "ostello con parcheggio".
+                </label>
+                <input id="preferences" name="preferences" class="form-control mb-2" maxlength="200"
+                       th:value="${suggestions != null} ? ${suggestions.preferences} : ''" placeholder="Preferenze del gruppo">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="small text-muted me-1"><i class="bi bi-stars"></i> Chiedi all'AI:</span>
+                    <button class="btn btn-dark btn-sm" type="submit" name="category" value="ALL">Tutto</button>
+                    <button class="btn btn-outline-dark btn-sm" type="submit" name="category" value="LODGING"><i class="bi bi-house-door"></i> Dove dormire</button>
+                    <button class="btn btn-outline-dark btn-sm" type="submit" name="category" value="ATTRACTION"><i class="bi bi-camera"></i> Cosa vedere</button>
+                    <button class="btn btn-outline-dark btn-sm" type="submit" name="category" value="RESTAURANT"><i class="bi bi-cup-hot"></i> Dove mangiare</button>
+                </div>
+            </form>
+
+            <p th:if="${suggestions == null and !trip.canEdit}" class="text-muted small">
+                Nessun consiglio ancora: chi può modificare il viaggio può generarli.
+            </p>
+
+            <th:block th:if="${suggestions != null}">
+                <div th:if="${suggestions.summary}" class="alert alert-light border mb-3">
+                    <i class="bi bi-stars text-primary"></i> <span th:text="${suggestions.summary}">riepilogo</span>
+                </div>
+                <div th:unless="${suggestions.aiGenerated}" class="alert alert-light border small mb-3">
+                    Assistente AI non disponibile: luoghi ordinati per valutazione e numero di recensioni.
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg" th:each="sec : ${suggestions.visibleSections()}"
+                         th:classappend="${#lists.size(suggestions.visibleSections()) == 1} ? 'col-lg-8'">
+                        <h3 class="h6 text-uppercase text-muted"><i class="bi me-1" th:classappend="${sec.category.icon}"></i><span th:text="${sec.category.label}">Categoria</span></h3>
+                        <p th:if="${#lists.isEmpty(sec.items)}" class="small text-muted">Nessun luogo adatto nei dintorni.</p>
+
+                        <div th:each="it : ${sec.items}" class="card shadow-sm mb-3 place-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <a th:href="${it.place.mapsUrl}" target="_blank" rel="noopener noreferrer"
+                                       class="fw-semibold text-dark text-decoration-none" th:text="${it.place.name}">Luogo</a>
+                                    <span class="rating small" th:if="${it.place.rating}">
+                                        <i class="bi bi-star-fill"></i>
+                                        <strong th:text="${#numbers.formatDecimal(it.place.rating, 1, 'POINT', 1, 'COMMA')}">4,5</strong>
+                                        <span class="text-muted" th:text="'(' + ${#numbers.formatInteger(it.place.ratingCount ?: 0, 1, 'POINT')} + ')'">(120)</span>
+                                    </span>
+                                </div>
+                                <div class="small text-muted">
+                                    <span th:if="${it.place.typeLabel}" th:text="${it.place.typeLabel}">Ostello</span>
+                                    <th:block th:if="${it.place.priceSymbols()}"> · <span th:text="${it.place.priceSymbols()}">€€</span></th:block>
+                                    · <span th:text="${#numbers.formatDecimal(it.distanceKm, 1, 'POINT', 1, 'COMMA')} + ' km da ' + ${it.near}">2 km</span>
+                                </div>
+                                <div class="small text-muted text-truncate" th:if="${it.place.address}" th:text="${it.place.address}">indirizzo</div>
+
+                                <p th:if="${it.reason}" class="small mt-2 mb-1">
+                                    <i class="bi bi-stars text-primary"></i> <span th:text="${it.reason}">motivazione</span>
+                                </p>
+
+                                <div th:each="r, ri : ${it.place.reviews}" th:if="${ri.index < 2}" class="review">
+                                    <div class="text-muted">
+                                        <a th:if="${r.authorUrl}" th:href="${r.authorUrl}" target="_blank" rel="noopener noreferrer"
+                                           class="text-muted" th:text="${r.author}">autore</a>
+                                        <span th:unless="${r.authorUrl}" th:text="${r.author}">autore</span>
+                                        <th:block th:if="${r.rating}"> · <span class="rating"><i class="bi bi-star-fill"></i> <span th:text="${r.rating}">5</span></span></th:block>
+                                        <th:block th:if="${r.relativeTime}"> · <span th:text="${r.relativeTime}">un mese fa</span></th:block>
+                                    </div>
+                                    <div th:text="${r.excerpt(220)}">testo recensione</div>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <a th:if="${it.place.mapsUrl}" th:href="${it.place.mapsUrl}" target="_blank" rel="noopener noreferrer"
+                                       class="btn btn-sm btn-outline-primary"><i class="bi bi-google"></i> Maps</a>
+                                    <form th:if="${trip.canEdit and sec.category.name() != 'LODGING'}"
+                                          th:action="@{/trips/{id}/stages/{sid}/suggestions/{p}/stop(id=${trip.id}, sid=${s.id}, p=${it.place.id})}" method="post">
+                                        <button class="btn btn-sm btn-outline-dark"><i class="bi bi-plus"></i> Aggiungi come fermata</button>
+                                    </form>
+                                    <form th:if="${trip.canEdit and sec.category.name() == 'LODGING'}"
+                                          th:action="@{/trips/{id}/stages/{sid}/suggestions/{p}/accommodation(id=${trip.id}, sid=${s.id}, p=${it.place.id})}" method="post">
+                                        <button class="btn btn-sm btn-outline-dark"><i class="bi bi-house-check"></i> Usa come alloggio</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="small text-muted mt-2 mb-0">
+                    Luoghi, valutazioni e recensioni: <strong>Google Maps</strong>.
+                    <th:block th:if="${suggestions.aiGenerated}">Selezione e motivazioni generate dall'AI: verifica sempre orari e disponibilità.</th:block>
+                    Generati alle <time data-local th:datetime="${suggestions.createdAt}" th:text="${suggestions.createdAt}">ora</time>.
+                </p>
+            </th:block>
+        </th:block>
+    </section>
 </main>
 
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>

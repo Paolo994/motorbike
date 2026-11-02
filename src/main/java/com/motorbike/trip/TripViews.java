@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.motorbike.fuel.FuelPriceService;
-import com.motorbike.geo.RouteResult;
 import com.motorbike.trip.TripEnums.RouteStatus;
 import com.motorbike.trip.TripEnums.TripRole;
 
@@ -36,7 +35,8 @@ public final class TripViews {
                             boolean avoidMotorways, boolean avoidTolls, RouteStatus routeStatus,
                             Double km, Integer durationSeconds, String duration, Boolean hasMotorway, Boolean hasToll,
                             String shape,
-                            List<RouteResult.Maneuver> directions, String notes, String highlights,
+                            List<DirectionStep> directions, GoogleMapsLinks.Link googleMaps,
+                            String notes, String highlights,
                             String accommodationType, String accommodationName, String accommodationAddress,
                             BigDecimal accommodationPrice, String accommodationUrl,
                             List<StopView> stops, FuelEstimate fuel) {
@@ -54,9 +54,10 @@ public final class TripViews {
     public record BikeParams(double kmPerLiter, boolean defaultConsumption, Double tankLiters) {
     }
 
+    /** googleMaps: percorso dell'intero viaggio, null se non ci sono tappe. */
     public record TripView(long id, String title, String description, LocalDate startDate, TripRole myRole,
                            boolean canEdit, boolean isOwner, List<MemberView> members, List<StageView> stages,
-                           Totals totals, BikeParams bike) {
+                           Totals totals, BikeParams bike, GoogleMapsLinks.Link googleMaps) {
     }
 
     public record StageDetail(TripView trip, StageView stage, List<FuelPriceService.Station> cheapestNearStart,

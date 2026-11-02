@@ -114,6 +114,11 @@ escluso da git; il repository contiene solo `.env.example`.
 | `FUEL_IMPORT_ENABLED` | `true` | Import giornaliero dei prezzi carburante |
 | `VALHALLA_URL` | istanza pubblica FOSSGIS | Servizio di routing |
 | `NOMINATIM_URL` | istanza pubblica OpenStreetMap | Ricerca luoghi |
+| `AI_ENABLED` | `false` | Accende la modalità AI (consigli per le tappe) |
+| `AI_MODEL` | `claude-opus-5-5` | Modello Claude usato per i consigli |
+| `AI_EFFORT` | `medium` | Livello di ragionamento del modello (`low`, `medium`, `high`) |
+| `ANTHROPIC_API_KEY` | vuota | Chiave API di Anthropic (Claude) |
+| `GOOGLE_PLACES_API_KEY` | vuota | Chiave Google Maps Platform con *Places API (New)* abilitata |
 
 ## Processi in background
 
@@ -135,6 +140,24 @@ contemporanee nella stessa istanza.
 | **Feed RSS/Atom** | Notizie | La fonte viene marcata in errore, le altre proseguono |
 | **Open data MIMIT** | Prezzi della benzina self e servito per distributore | Restano i prezzi dell'ultimo import riuscito |
 | **Tile OpenStreetMap** | Sfondo delle mappe (caricato dal browser) | — |
+| **Google Maps (link)** | Pulsante "Apri in Google Maps": apre l'app o il sito con il percorso già impostato. Nessuna chiave richiesta | — |
+| **Google Places API (New)** | Solo modalità AI: luoghi, valutazioni e recensioni vicino alla tappa | Senza chiave la sezione consigli lo segnala e non si attiva |
+| **Claude API** | Solo modalità AI: sceglie e motiva i luoghi | Luoghi ordinati per valutazione, senza motivazioni |
+
+### Modalità AI: attivazione e costi
+
+1. Abilita *Places API (New)* in un progetto Google Cloud e crea una chiave (meglio se limitata a quell'API).
+2. Crea una chiave su console.anthropic.com.
+3. Nel file `.env` imposta `AI_ENABLED=true`, `ANTHROPIC_API_KEY` e `GOOGLE_PLACES_API_KEY`, poi
+   `docker compose --profile app up -d`. Lo stato è visibile nel pannello `/admin` (senza mostrare le chiavi).
+
+Ogni richiesta di consigli esegue 4 ricerche Google Places e una chiamata a Claude. Per contenere la spesa:
+solo organizzatore ed editor possono generarli, con un massimo di 10 richieste all'ora per utente, e i risultati
+restano in cache per 6 ore. Il link "Apri in Google Maps" non usa API e non ha costi.
+
+Per l'uso di Google Places valgono i termini di Google Maps Platform: i dati dei luoghi non vanno mostrati su
+mappe non Google né archiviati, e va mostrata l'attribuzione. L'app li tiene solo in memoria e li mostra in elenco,
+con link a Google Maps.
 
 Le istanze pubbliche di Valhalla, Nominatim e delle tile OpenStreetMap sono pensate per un **uso moderato**.
 L'applicazione rispetta le loro policy (User-Agent identificativo, massimo una ricerca al secondo verso

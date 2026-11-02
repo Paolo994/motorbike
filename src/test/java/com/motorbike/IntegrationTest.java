@@ -12,6 +12,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import com.motorbike.ai.PlacesClient;
+import com.motorbike.ai.TravelCurator;
 import com.motorbike.auth.AppUserDetails;
 import com.motorbike.friend.FriendshipService;
 import com.motorbike.geo.RoutingService;
@@ -39,6 +41,8 @@ public abstract class IntegrationTest {
     @MockitoBean protected MailService mailService;
     @MockitoBean protected FeedClient feedClient;
     @MockitoBean protected RoutingService routingService;
+    @MockitoBean protected PlacesClient placesClient;
+    @MockitoBean protected TravelCurator travelCurator;
 
     /** Utente attivo con username univoco (prefisso + contatore). */
     protected User createUser(String prefix) {

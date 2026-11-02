@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.motorbike.ai.StageSuggestionService;
 import com.motorbike.auth.AppUserDetails;
 import com.motorbike.trip.TripEnums.AccommodationType;
 import com.motorbike.trip.TripEnums.StopType;
@@ -26,10 +27,12 @@ public class TripController {
 
     private final TripService service;
     private final TripMapJson mapJson;
+    private final StageSuggestionService suggestions;
 
-    public TripController(TripService service, TripMapJson mapJson) {
+    public TripController(TripService service, TripMapJson mapJson, StageSuggestionService suggestions) {
         this.service = service;
         this.mapJson = mapJson;
+        this.suggestions = suggestions;
     }
 
     // ================================================================ viaggi
@@ -166,6 +169,8 @@ public class TripController {
                         Model model) {
         var detail = service.stageDetail(me.getId(), id, stageId);
         model.addAttribute("detail", detail);
+        model.addAttribute("aiStatus", suggestions.status().name());
+        model.addAttribute("suggestions", suggestions.cached(me.getId(), id, stageId).orElse(null));
         model.addAttribute("mapJson", mapJson.of(id, java.util.List.of(detail.stage()), stageId,
             detail.cheapestNearStart()));
         return "trips/stage";
@@ -221,6 +226,7 @@ public class TripController {
         model.addAttribute("stopTypes", StopType.values());
         model.addAttribute("accommodationTypes", AccommodationType.values());
         model.addAttribute("maxStops", StageForm.MAX_STOPS);
+        model.addAttribute("aiStatus", suggestions.status().name());
         return "trips/stage-form";
     }
 

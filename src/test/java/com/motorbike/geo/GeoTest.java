@@ -66,7 +66,7 @@ class GeoTest {
     void fallsBackToStraightLineEstimateWhenServiceIsDown() {
         // URL non raggiungibile: nessuna eccezione, stima in linea d'aria × 1,3 a 60 km/h
         RoutingService service = new RoutingService(json, new AppProperties(null, null, null, null,
-            new AppProperties.Http("test"), null, null, new AppProperties.Routing("http://127.0.0.1:9"), null));
+            new AppProperties.Http("test"), null, null, new AppProperties.Routing("http://127.0.0.1:9"), null, null, null));
         RouteResult r = service.route(List.of(new LatLon(43.7696, 11.2558), new LatLon(43.3188, 11.3308)), true, false);
         assertThat(r.estimated()).isTrue();
         assertThat(r.distanceMeters() / 1000.0).isCloseTo(50.5 * 1.3, within(2.0));
@@ -74,8 +74,20 @@ class GeoTest {
         assertThat(r.maneuvers()).isEmpty();
     }
 
+    /** Caso reale: per "Siena" Nominatim restituisce prima la provincia, con coordinate a 25 km dalla città. */
+    @Test
+    void geocodingPutsCitiesBeforeAdministrativeAreas() {
+        String body = """
+            [{"addresstype": "county", "name": "Siena", "display_name": "Siena, Toscana, Italia", "lat": "43.167", "lon": "11.468"},
+             {"addresstype": "city", "name": "Siena", "display_name": "Siena, Toscana, 53100, Italia", "lat": "43.319", "lon": "11.332"}]
+            """;
+        List<GeocodingService.Place> places = GeocodingService.parse(json.readTree(body));
+        assertThat(places).extracting(GeocodingService.Place::label)
+            .containsExactly("Siena, Toscana, 53100, Italia", "Siena, Toscana, Italia");
+    }
+
     private static AppProperties props() {
         return new AppProperties(null, null, null, null, new AppProperties.Http("test"), null, null,
-            new AppProperties.Routing("http://localhost"), null);
+            new AppProperties.Routing("http://localhost"), null, null, null);
     }
 }

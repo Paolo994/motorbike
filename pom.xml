@@ -87,6 +87,13 @@
             <version>1.22.2</version>
         </dependency>
 
+        <!-- Modalità AI (consigli per le tappe): SDK ufficiale Anthropic -->
+        <dependency>
+            <groupId>com.anthropic</groupId>
+            <artifactId>anthropic-java</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
         <!-- Mail -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

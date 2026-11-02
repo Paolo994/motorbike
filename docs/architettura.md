@@ -60,6 +60,7 @@ flowchart TB
             S_TRIP["trip, cost calculator"]
             S_GEO["geo: routing, geocoding"]
             S_FUEL["fuel: import, prezzi"]
+            S_AI["ai: consigli per le tappe<br/>attivabile da configurazione"]
             S_MAIL["mail"]
         end
         JOBS["Job schedulati<br/>notizie ogni 30 min<br/>carburante ogni giorno"]
@@ -69,6 +70,7 @@ flowchart TB
     DB[("PostgreSQL")]
     SMTP["Server SMTP<br/>Mailpit in sviluppo"]
     EXT["Servizi esterni<br/>Valhalla, Nominatim,<br/>feed RSS, open data MIMIT,<br/>tile OpenStreetMap"]
+    AIEXT["Modalità AI<br/>Google Places API<br/>Claude API (Anthropic)"]
 
     UI -->|HTTP| SEC --> Web
     JS -->|"fetch + CSRF"| SEC
@@ -83,6 +85,8 @@ flowchart TB
     S_GEO --> EXT
     S_NEWS --> EXT
     S_FUEL --> EXT
+    S_AI --> S_TRIP
+    S_AI --> AIEXT
     JS -->|tile mappa| EXT
 ```
 
@@ -97,7 +101,8 @@ flowchart TB
 | `friend` | Ricerca utenti, richieste e lista amici | `FriendshipService`, `Friendship` |
 | `chat` | Conversazioni tra amici, messaggi, non letti, ricerca | `ChatService`, `ChatPushListener` |
 | `news` | Agente sui feed, classificazione, iscrizioni ai topic, email riepilogative | `NewsIngestService`, `FeedClient`, `KeywordArticleClassifier`, `NewsNotifier` |
-| `trip` | Road trip, partecipanti, tappe, fermate, alloggi, costi | `TripService`, `TripCostCalculator`, `TripMapJson` |
+| `trip` | Road trip, partecipanti, tappe, fermate, alloggi, costi, link "Apri in Google Maps" | `TripService`, `TripCostCalculator`, `TripMapJson`, `GoogleMapsLinks` |
+| `ai` | Modalità AI (attivabile da configurazione): consigli di alloggi, cose da vedere e ristoranti per una tappa | `StageSuggestionService`, `PlacesClient`, `ClaudeTravelCurator` |
 | `geo` | Percorsi (Valhalla), ricerca luoghi (Nominatim), polyline | `RoutingService`, `GeocodingService`, `Polyline` |
 | `fuel` | Import open data MIMIT, prezzi della benzina vicino a un punto | `FuelImportService`, `FuelPriceService`, `MimitCsv` |
 | `mail` | Invio email HTML da template | `MailService` |
@@ -121,7 +126,9 @@ flowchart LR
     trip --> notification
     trip --> geo
     trip --> fuel
+    ai --> trip
     web --> photo
+    web --> ai
     web --> news
     web --> fuel
     web --> chat
@@ -144,6 +151,28 @@ Anche il `CONNECT` STOMP richiede il token CSRF.
 
 I messaggi vengono inviati al broker **solo dopo il commit** della transazione (`@TransactionalEventListener`):
 il browser non riceve mai dati che il database potrebbe ancora annullare.
+
+## Modalità AI
+
+Una funzione opzionale, **spenta di default** (`AI_ENABLED`), che per ogni tappa propone dove dormire,
+cosa vedere e dove mangiare. È costruita per non mostrare mai dati inventati:
+
+| Responsabilità | Chi se ne occupa |
+|---|---|
+| Quali luoghi esistono, con valutazioni, numero di recensioni, fascia di prezzo, recensioni | **Google Places API (New)**, ricerca nei dintorni dell'arrivo e di metà percorso |
+| Quali scegliere per questa tappa e perché | **Claude** (`ClaudeTravelCurator`), con output strutturato validato da schema JSON |
+| Che le scelte siano luoghi reali | Il server: tiene solo gli id presenti tra i candidati, senza doppioni e nel limite per categoria |
+| Cosa mostrare se Claude non risponde | Ordinamento per valutazione pesata sul numero di recensioni, senza motivazioni |
+
+- Le valutazioni e le recensioni in pagina vengono sempre da Google, mai dal modello. Il prompt contiene solo
+  i dati dei candidati; i testi delle recensioni sono marcati come dati di terzi, da non seguire come istruzioni.
+- Generare consigli ha un costo: lo possono fare solo organizzatore ed editor, con un limite orario per utente.
+  I risultati restano in una cache in memoria (6 ore, invalidata quando la tappa cambia): le condizioni d'uso di
+  Google non consentono di archiviare i dati dei luoghi, e per lo stesso motivo non vengono mostrati sulla mappa
+  OpenStreetMap ma solo in elenco, con link a Google Maps e l'attribuzione richiesta.
+- Dai consigli si può **aggiungere un ristorante o un'attrazione come fermata** (il percorso viene ricalcolato) o
+  **usare un alloggio come alloggio della tappa**.
+- `TravelCurator` è un'interfaccia: il modello o il fornitore si possono cambiare senza toccare il resto.
 
 ## Sicurezza
 

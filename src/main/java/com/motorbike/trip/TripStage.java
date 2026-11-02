@@ -176,6 +176,7 @@ public class TripStage {
     public BigDecimal getAccommodationPrice() { return accommodationPrice; }
     public String getAccommodationUrl() { return accommodationUrl; }
     public List<TripStop> getStops() { return stops; }
+    public Instant getUpdatedAt() { return updatedAt; }
 
     void setPosition(int position) { this.position = position; }
     void setTitle(String title) { this.title = title; }

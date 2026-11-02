@@ -10,6 +10,7 @@
     <h1 class="h3 mt-2 mb-4" th:text="${stageId == null} ? 'Nuova tappa' : 'Modifica tappa'">Nuova tappa</h1>
 
     <form id="stage-form" th:object="${form}" method="post"
+          th:attr="data-suggest-url=@{/trips/{id}/suggestions/preview(id=${trip.id})}"
           th:action="${stageId == null} ? @{/trips/{id}/stages(id=${trip.id})} : @{/trips/{id}/stages/{sid}(id=${trip.id}, sid=${stageId})}">
         <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">Controlla i campi evidenziati.</div>
         <div class="row g-4">
@@ -88,7 +89,14 @@
                                   placeholder="Ritrovo, orari, tratti impegnativi, dove fare benzina, consigli di guida…"></textarea>
                     </div>
                     <div>
-                        <label for="highlights" class="form-label">Cosa vedere</label>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label for="highlights" class="form-label mb-0">Cosa vedere</label>
+                            <button th:if="${aiStatus == 'READY'}" type="button" class="btn btn-sm btn-outline-primary ai-suggest"
+                                    data-category="ATTRACTION" data-target="suggest-attractions">
+                                <i class="bi bi-stars"></i> Cerca suggerimenti
+                            </button>
+                        </div>
+                        <div id="suggest-attractions" class="ai-suggest-results"></div>
                         <textarea th:field="*{highlights}" class="form-control" rows="4" maxlength="4000"
                                   placeholder="Panorami, borghi, musei, piatti tipici da provare…"></textarea>
                     </div>
@@ -96,7 +104,14 @@
 
                 <!-- Alloggio -->
                 <div class="card shadow-sm mb-4"><div class="card-body">
-                    <h2 class="h6 text-uppercase text-muted">Alloggio a fine tappa</h2>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h6 text-uppercase text-muted mb-0">Alloggio a fine tappa</h2>
+                        <button th:if="${aiStatus == 'READY'}" type="button" class="btn btn-sm btn-outline-primary ai-suggest"
+                                data-category="LODGING" data-target="suggest-lodging">
+                            <i class="bi bi-stars"></i> Cerca suggerimenti
+                        </button>
+                    </div>
+                    <div id="suggest-lodging" class="ai-suggest-results"></div>
                     <div class="row g-2">
                         <div class="col-sm-4">
                             <select th:field="*{accommodationType}" class="form-select" aria-label="Tipo di alloggio">
@@ -169,5 +184,6 @@
 <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script th:src="@{/js/stage-form.js}"></script>
+<script th:src="@{/js/stage-suggest.js}"></script>
 </body>
 </html>

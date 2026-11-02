@@ -4,3 +4,7 @@ app:
     fetch-enabled: false
   fuel:
     import-enabled: false
+  # modalità AI accesa nei test: Google Places e Claude sono sostituiti da mock (IntegrationTest)
+  ai:
+    enabled: true
+    max-requests-per-hour: 3

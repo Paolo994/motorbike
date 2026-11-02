@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.motorbike.ai.StageSuggestionService;
+import com.motorbike.config.AppProperties;
 import com.motorbike.fuel.FuelImportService;
 import com.motorbike.fuel.FuelPriceService;
 import com.motorbike.news.NewsAdminService;
@@ -21,13 +23,17 @@ public class AdminController {
     private final NewsAdminService news;
     private final FuelImportService fuelImport;
     private final FuelPriceService fuelPrices;
+    private final StageSuggestionService suggestions;
+    private final AppProperties props;
 
     public AdminController(PhotoService photos, NewsAdminService news, FuelImportService fuelImport,
-                           FuelPriceService fuelPrices) {
+                           FuelPriceService fuelPrices, StageSuggestionService suggestions, AppProperties props) {
         this.photos = photos;
         this.news = news;
         this.fuelImport = fuelImport;
         this.fuelPrices = fuelPrices;
+        this.suggestions = suggestions;
+        this.props = props;
     }
 
     @GetMapping
@@ -38,6 +44,11 @@ public class AdminController {
         model.addAttribute("fuelStations", fuelImport.stationCount());
         model.addAttribute("fuelAverage", fuelPrices.nationalAverage().orElse(null));
         model.addAttribute("fuelRunning", fuelImport.isRunning());
+        // solo lo stato: le chiavi non vengono mai mostrate
+        model.addAttribute("aiEnabled", props.ai().enabled());
+        model.addAttribute("aiModel", props.ai().model());
+        model.addAttribute("aiKeyPresent", suggestions.isAiConfigured());
+        model.addAttribute("placesKeyPresent", props.places().configured());
         return "admin/index";
     }
 

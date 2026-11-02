@@ -17,6 +17,7 @@ import com.motorbike.friend.FriendshipService;
 import com.motorbike.friend.UserCard;
 import com.motorbike.fuel.FuelPriceService;
 import com.motorbike.geo.LatLon;
+import com.motorbike.geo.Polyline;
 import com.motorbike.geo.RouteResult;
 import com.motorbike.geo.RoutingService;
 import com.motorbike.notification.NotificationService;
@@ -346,6 +347,87 @@ public class TripService {
         }
     }
 
+    // ================================================================ supporto ai consigli (modulo ai)
+
+    /** Dati di una tappa per i consigli. Richiede di poter modificare il viaggio se {@code forEdit}. */
+    @Transactional(readOnly = true)
+    public StageAiContext aiContext(Long userId, Long tripId, Long stageId, boolean forEdit) {
+        if (forEdit) {
+            requireEditor(tripId, userId);
+        } else {
+            requireMember(tripId, userId);
+        }
+        TripStage s = stages.findInTrip(tripId, stageId).orElseThrow(TripNotFound::new);
+        LatLon start = new LatLon(s.getStartLat(), s.getStartLon());
+        LatLon end = new LatLon(s.getEndLat(), s.getEndLon());
+        List<LatLon> route = s.getRouteShape() == null ? s.waypoints() : Polyline.decode(s.getRouteShape());
+        return new StageAiContext(tripId, stageId, s.getUpdatedAt(), s.getTitle(),
+            s.getStageDate() == null ? null : s.getStageDate().toString(), s.getStartName(), s.getEndName(),
+            start, end, halfway(route),
+            s.getDistanceM() == null ? null : s.getDistanceM() / 1000.0, TripViews.formatDuration(s.getDurationS()),
+            s.isAvoidMotorways(), s.getStops().stream().map(TripStop::getName).toList(), s.getNotes(), s.getHighlights());
+    }
+
+    /** Aggiunge una fermata in fondo a quelle della tappa e ricalcola il percorso. */
+    public void addStop(Long userId, Long tripId, Long stageId, String name, TripEnums.StopType type,
+                        double lat, double lon, String notes) {
+        StageForm form = tx.execute(s -> {
+            requireEditor(tripId, userId);
+            return StageForm.from(stages.findInTrip(tripId, stageId).orElseThrow(TripNotFound::new));
+        });
+        if (form.getStops().size() >= StageForm.MAX_STOPS) {
+            throw new InvalidOperation("La tappa ha già il numero massimo di fermate.");
+        }
+        StageForm.StopForm stop = new StageForm.StopForm();
+        stop.setName(name.length() > 150 ? name.substring(0, 150) : name);
+        stop.setType(type);
+        stop.setLat(lat);
+        stop.setLon(lon);
+        stop.setNotes(notes);
+        form.getStops().add(stop);
+        saveStage(userId, tripId, stageId, form);
+    }
+
+    /** Imposta l'alloggio di fine tappa (il prezzo resta quello inserito dal gruppo). */
+    @Transactional
+    public void setAccommodation(Long userId, Long tripId, Long stageId, TripEnums.AccommodationType type,
+                                 String name, String address, String url) {
+        requireEditor(tripId, userId);
+        TripStage s = stages.findInTrip(tripId, stageId).orElseThrow(TripNotFound::new);
+        s.setAccommodation(type, truncate(name, 150), truncate(address, 250), s.getAccommodationPrice(),
+            truncate(url, 500));
+        s.touch();
+    }
+
+    /** Verifica che l'utente possa modificare il viaggio (404 se non partecipa, 403 se in sola lettura). */
+    @Transactional(readOnly = true)
+    public void checkCanEdit(Long userId, Long tripId) {
+        requireEditor(tripId, userId);
+    }
+
+    /** Punto a metà della lunghezza del percorso. */
+    public static LatLon halfway(List<LatLon> route) {
+        if (route.size() == 1) {
+            return route.getFirst();
+        }
+        double total = 0;
+        for (int i = 1; i < route.size(); i++) {
+            total += route.get(i - 1).distanceKm(route.get(i));
+        }
+        double walked = 0;
+        for (int i = 1; i < route.size(); i++) {
+            walked += route.get(i - 1).distanceKm(route.get(i));
+            if (walked >= total / 2) {
+                return route.get(i);
+            }
+        }
+        return route.getLast();
+    }
+
+    private static String truncate(String s, int max) {
+        return s == null || s.length() <= max ? s : s.substring(0, max);
+    }
+
     // ================================================================ helper
 
     private void renumber(Long tripId) {
@@ -383,7 +465,22 @@ public class TripService {
                 m.getUser().getPhotoId(), m.getRole()))
             .toList();
         return new TripView(trip.getId(), trip.getTitle(), trip.getDescription(), trip.getStartDate(), me.getRole(),
-            me.getRole().canEdit(), me.getRole() == TripRole.OWNER, memberViews, stageViews, totals(stageViews), bike);
+            me.getRole().canEdit(), me.getRole() == TripRole.OWNER, memberViews, stageViews, totals(stageViews), bike,
+            tripMapsLink(stageViews));
+    }
+
+    /** Percorso dell'intero viaggio: partenza della prima tappa, poi fermate e arrivi di ogni tappa. */
+    private static GoogleMapsLinks.Link tripMapsLink(List<StageView> stageViews) {
+        if (stageViews.isEmpty()) {
+            return null;
+        }
+        List<LatLon> points = new ArrayList<>();
+        points.add(new LatLon(stageViews.getFirst().startLat(), stageViews.getFirst().startLon()));
+        for (StageView s : stageViews) {
+            s.stops().forEach(st -> points.add(new LatLon(st.lat(), st.lon())));
+            points.add(new LatLon(s.endLat(), s.endLon()));
+        }
+        return GoogleMapsLinks.directions(points);
     }
 
     private StageView toView(TripStage s, BikeParams bike, boolean withDirections) {
@@ -399,19 +496,23 @@ public class TripService {
             s.getDurationS(), TripViews.formatDuration(s.getDurationS()), s.getHasMotorway(), s.getHasToll(),
             s.getRouteShape(),
             withDirections ? directions(s.getDirectionsJson()) : List.of(),
+            GoogleMapsLinks.directions(s.waypoints()),
             s.getNotes(), s.getHighlights(),
             s.getAccommodationType() == null ? null : s.getAccommodationType().getLabel(),
             s.getAccommodationName(), s.getAccommodationAddress(), s.getAccommodationPrice(), s.getAccommodationUrl(),
             stopViews, fuelEstimate);
     }
 
-    private List<RouteResult.Maneuver> directions(String jsonText) {
+    private List<DirectionStep> directions(String jsonText) {
         if (jsonText == null || jsonText.isBlank()) {
             return List.of();
         }
-        List<RouteResult.Maneuver> result = new ArrayList<>();
+        List<DirectionStep> result = new ArrayList<>();
         for (JsonNode n : json.readTree(jsonText)) {
-            result.add(new RouteResult.Maneuver(n.path("text").asString(""), n.path("km").asDouble()));
+            String text = n.path("text").asString("");
+            if (!text.isBlank()) {
+                result.add(new DirectionStep(result.size() + 1, text, n.path("km").asDouble(), DirectionStep.iconFor(text)));
+            }
         }
         return result;
     }

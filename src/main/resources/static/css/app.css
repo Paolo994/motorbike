@@ -3,6 +3,11 @@ body {
     min-height: 100vh;
 }
 
+/* spazio in fondo a ogni pagina: l'ultima scheda non resta attaccata al bordo */
+main.container {
+    padding-bottom: 4rem;
+}
+
 .auth-card {
     max-width: 440px;
     margin: 0 auto;
@@ -135,9 +140,62 @@ img.avatar {
     flex-shrink: 0;
 }
 
-.directions li {
-    padding: .35rem 0;
-    border-bottom: 1px solid #eee;
+.steps .step {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.steps .step:last-child {
+    border-bottom: 0;
+}
+
+.step-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #212529;
+    color: #f0a500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.step-text {
+    flex-grow: 1;
+    font-size: .92rem;
+}
+
+.step-km {
+    flex-shrink: 0;
+    font-size: .78rem;
+    color: #495057;
+    background: #f1f3f5;
+    border-radius: 1rem;
+    padding: .1rem .55rem;
+}
+
+/* ---------------------------------------------------------------- consigli AI */
+
+.ai-badge {
+    background: linear-gradient(135deg, #6f42c1, #d63384);
+    color: #fff;
+}
+
+.place-card .rating {
+    color: #f0a500;
+    white-space: nowrap;
+}
+
+.place-card .review {
+    font-size: .82rem;
+    border-left: 3px solid #dee2e6;
+    padding-left: .6rem;
+    margin-top: .5rem;
 }
 
 .stat-tile {

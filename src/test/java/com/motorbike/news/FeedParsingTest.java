@@ -16,7 +16,7 @@ import com.motorbike.config.AppProperties;
 class FeedParsingTest {
 
     private final FeedClient client = new FeedClient(new AppProperties(null, null, null, null,
-        new AppProperties.Http("test"), null, null, null, null));
+        new AppProperties.Http("test"), null, null, null, null, null, null));
 
     private static final String RSS = """
         <?xml version="1.0" encoding="UTF-8"?>

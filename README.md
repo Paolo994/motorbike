@@ -117,6 +117,8 @@ solo al proprietario e agli admin finché un admin non la approva; l'utente rice
 | `FUEL_IMPORT_ENABLED` | `true` | Import giornaliero prezzi MIMIT (ore 9:30) |
 | `VALHALLA_URL` | istanza pubblica FOSSGIS | Servizio di routing |
 | `NOMINATIM_URL` | istanza pubblica OSM | Ricerca luoghi |
+| `AI_ENABLED` / `AI_MODEL` | `false` / `claude-opus-5-5` | Modalità AI: consigli per le tappe |
+| `ANTHROPIC_API_KEY` / `GOOGLE_PLACES_API_KEY` | vuote | Chiavi per la modalità AI (solo in `.env`) |
 
 ## Prima di andare in produzione
 
@@ -134,5 +136,7 @@ solo al proprietario e agli admin finché un admin non la approva; l'utente rice
 - [x] Foto profilo con approvazione admin
 - [x] Notizie: agente RSS, topic, notifiche ed email riepilogative
 - [x] Road trip: tappe, fermate, alloggi, mappa, indicazioni, costi carburante reali
+- [x] "Apri in Google Maps" per tappe e viaggi, indicazioni stradali leggibili
+- [x] Modalità AI attivabile: alloggi, cose da vedere e ristoranti con valutazioni reali (Google Places + Claude)
 - [ ] Chat di gruppo per i partecipanti di un road trip (schema già pronto)
-- [ ] Fase 2: modulo AI opzionale (classificazione notizie, assistente road trip)
+- [ ] Classificazione delle notizie con AI

@@ -66,3 +66,15 @@ app:
     valhalla-url: ${VALHALLA_URL:https://valhalla1.openstreetmap.de}
   geocoding:
     nominatim-url: ${NOMINATIM_URL:https://nominatim.openstreetmap.org}
+  # Modalità AI: consigli di alloggi, cose da vedere e ristoranti per ogni tappa.
+  # Luoghi, valutazioni e recensioni arrivano da Google Places; Claude sceglie e motiva.
+  # Richiede ANTHROPIC_API_KEY e GOOGLE_PLACES_API_KEY.
+  ai:
+    enabled: ${AI_ENABLED:false}
+    model: ${AI_MODEL:claude-opus-5-5}
+    effort: ${AI_EFFORT:medium}
+    max-requests-per-hour: 10
+    cache-ttl: PT6H
+  places:
+    api-key: ${GOOGLE_PLACES_API_KEY:}
+    base-url: https://places.googleapis.com

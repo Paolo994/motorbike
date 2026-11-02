@@ -153,6 +153,14 @@ sequenceDiagram
     TC-->>U: redirect alla pagina della tappa
 ```
 
+La ricerca dei luoghi mette **città e luoghi veri prima delle aree amministrative**. Cercando "Siena",
+Nominatim restituisce per prima la *provincia*, le cui coordinate sono un punto interno a circa 25 km dalla città.
+Un arrivo salvato lì sposterebbe anche costi e consigli AI.
+
+Dalla pagina della tappa il pulsante **Apri in Google Maps** apre l'app o il sito di Google Maps con partenza,
+fermate e arrivo già impostati (Maps URLs, senza chiave API). Google Maps accetta al massimo 9 punti intermedi
+(3 da smartphone) e non riceve l'opzione "evita autostrade": la pagina lo segnala.
+
 ### Calcolo dei costi (alla visualizzazione)
 
 I costi non vengono salvati: si calcolano ogni volta per **chi sta guardando**, con il consumo della sua
@@ -176,6 +184,8 @@ flowchart LR
 ## 7. Consigli AI per una tappa
 
 Solo con la modalità AI accesa. Google fornisce i luoghi reali, Claude sceglie e motiva, il server controlla.
+L'utente sceglie cosa cercare: **Tutto**, **Dove dormire**, **Cosa vedere** o **Dove mangiare**; si interrogano
+solo le categorie richieste.
 
 ```mermaid
 sequenceDiagram
@@ -187,15 +197,21 @@ sequenceDiagram
     participant CL as Claude
     participant RS as RoutingService
 
-    U->>SC: POST .../suggestions (preferenze facoltative)
-    SC->>SS: generate(utente, tappa, preferenze)
+    U->>SC: POST .../suggestions (categoria, preferenze facoltative)
+    SC->>SS: generate(utente, tappa, preferenze, categorie)
     SS->>TS: dati della tappa, l'utente può modificarla?
     SS->>SS: limite orario per utente
-    SS->>GP: alloggi vicino all'arrivo
-    SS->>GP: cose da vedere a metà percorso e all'arrivo
-    SS->>GP: ristoranti a metà percorso
+    opt categoria Dove dormire o Tutto
+        SS->>GP: alloggi vicino all'arrivo
+    end
+    opt categoria Cosa vedere o Tutto
+        SS->>GP: cose da vedere a metà percorso e all'arrivo
+    end
+    opt categoria Dove mangiare o Tutto
+        SS->>GP: ristoranti a metà percorso
+    end
     GP-->>SS: luoghi con valutazioni e recensioni
-    SS->>CL: tappa + candidati, output strutturato
+    SS->>CL: tappa + candidati delle sole categorie richieste
     alt Claude risponde
         CL-->>SS: id scelti e motivazioni
         SS->>SS: tiene solo id esistenti, niente doppioni
@@ -203,7 +219,7 @@ sequenceDiagram
         SS->>SS: ordina per valutazione e recensioni
     end
     SS->>SS: cache in memoria (6 ore, finché la tappa non cambia)
-    SC-->>U: pagina della tappa con i consigli
+    SC-->>U: pagina della tappa con le sole sezioni pertinenti
     U->>SC: "Aggiungi come fermata" su un ristorante
     SC->>SS: addAsStop(luogo dalla cache del server)
     SS->>TS: aggiunge la fermata
@@ -212,6 +228,36 @@ sequenceDiagram
 
 Il browser invia solo l'id del luogo: nome e coordinate della fermata vengono dalla cache del server,
 non da dati del client.
+
+### Suggerimenti dal form della tappa
+
+Nel form, accanto a *Cosa vedere* e ad *Alloggio a fine tappa*, il pulsante **Cerca suggerimenti** funziona anche
+prima di salvare la tappa: usa le coordinate già inserite e compila il form con il luogo scelto.
+
+```mermaid
+sequenceDiagram
+    actor U as Editor (browser)
+    participant JS as stage-suggest.js
+    participant DC as DraftSuggestionController
+    participant SS as StageSuggestionService
+    participant GP as Google Places
+    participant CL as Claude
+
+    U->>JS: clic su Cerca suggerimenti (Cosa vedere)
+    JS->>JS: legge partenza, fermate e arrivo dal form
+    JS->>DC: POST /trips/{id}/suggestions/preview, category ATTRACTION
+    DC->>SS: preview(utente, viaggio, bozza, categoria)
+    SS->>SS: può modificare il viaggio? limite orario
+    SS->>GP: cose da vedere a metà della spezzata e all'arrivo
+    GP-->>SS: luoghi con valutazioni e recensioni
+    SS->>CL: bozza della tappa + candidati
+    CL-->>SS: id scelti e motivazioni
+    DC-->>JS: JSON con i luoghi scelti
+    JS-->>U: schede con stelle, motivo e recensione
+    U->>JS: Aggiungi a Cosa vedere
+    JS->>JS: aggiunge una riga al campo Cosa vedere
+    Note over U,JS: per gli alloggi il pulsante Usa questo compila<br/>tipo, nome, indirizzo e link, il prezzo resta a mano
+```
 
 ## 8. Permessi in un road trip
 

@@ -102,8 +102,8 @@ flowchart TB
 | `chat` | Conversazioni tra amici, messaggi, non letti, ricerca | `ChatService`, `ChatPushListener` |
 | `news` | Agente sui feed, classificazione, iscrizioni ai topic, email riepilogative | `NewsIngestService`, `FeedClient`, `KeywordArticleClassifier`, `NewsNotifier` |
 | `trip` | Road trip, partecipanti, tappe, fermate, alloggi, costi, link "Apri in Google Maps" | `TripService`, `TripCostCalculator`, `TripMapJson`, `GoogleMapsLinks` |
-| `ai` | Modalità AI (attivabile da configurazione): consigli di alloggi, cose da vedere e ristoranti per una tappa | `StageSuggestionService`, `PlacesClient`, `ClaudeTravelCurator` |
-| `geo` | Percorsi (Valhalla), ricerca luoghi (Nominatim), polyline | `RoutingService`, `GeocodingService`, `Polyline` |
+| `ai` | Modalità AI (attivabile da configurazione): consigli di alloggi, cose da vedere e ristoranti per una tappa, anche per categoria e dal form della tappa | `StageSuggestionService`, `PlacesClient`, `ClaudeTravelCurator`, `StageSuggestionController`, `DraftSuggestionController` |
+| `geo` | Percorsi (Valhalla), ricerca luoghi (Nominatim, con le città prima di province e regioni), polyline | `RoutingService`, `GeocodingService`, `Polyline` |
 | `fuel` | Import open data MIMIT, prezzi della benzina vicino a un punto | `FuelImportService`, `FuelPriceService`, `MimitCsv` |
 | `mail` | Invio email HTML da template | `MailService` |
 | `config` | Sicurezza, WebSocket, proprietà applicative | `SecurityConfig`, `WebSocketConfig`, `AppProperties` |
@@ -170,9 +170,55 @@ cosa vedere e dove mangiare. È costruita per non mostrare mai dati inventati:
   I risultati restano in una cache in memoria (6 ore, invalidata quando la tappa cambia): le condizioni d'uso di
   Google non consentono di archiviare i dati dei luoghi, e per lo stesso motivo non vengono mostrati sulla mappa
   OpenStreetMap ma solo in elenco, con link a Google Maps e l'attribuzione richiesta.
-- Dai consigli si può **aggiungere un ristorante o un'attrazione come fermata** (il percorso viene ricalcolato) o
-  **usare un alloggio come alloggio della tappa**.
 - `TravelCurator` è un'interfaccia: il modello o il fornitore si possono cambiare senza toccare il resto.
+
+### Dove si usa
+
+| Punto dell'interfaccia | Cosa propone | Endpoint | Cosa succede scegliendo un luogo |
+|---|---|---|---|
+| Pagina della tappa, **Chiedi all'AI: Tutto** | Alloggi, cose da vedere, ristoranti | `POST /trips/{id}/stages/{sid}/suggestions` | "Aggiungi come fermata" (ristoranti, attrazioni: il percorso viene ricalcolato) o "Usa come alloggio" |
+| Pagina della tappa, **Dove dormire / Cosa vedere / Dove mangiare** | Solo la categoria scelta | stesso endpoint con `category` | come sopra |
+| Form della tappa, **Cerca suggerimenti** accanto a *Cosa vedere* | Solo cose da vedere | `POST /trips/{id}/suggestions/preview` (JSON) | il luogo viene aggiunto al campo *Cosa vedere* del form |
+| Form della tappa, **Cerca suggerimenti** accanto ad *Alloggio a fine tappa* | Solo ostelli, B&B, affittacamere | come sopra, `category=LODGING` | tipo, nome, indirizzo e link dell'alloggio vengono compilati nel form |
+
+### Ricerche per categoria
+
+Ogni richiesta indica le categorie volute e il servizio **cerca solo quelle**: una ricerca "Dove dormire" fa una
+sola chiamata a Google Places invece di quattro, e al modello arrivano solo gli alloggi. Con "Tutto" il prompt
+chiede al modello di lasciare vuote le categorie non pertinenti quando le preferenze del gruppo parlano chiaramente
+di una cosa sola (es. "solo un ostello economico"); la pagina mostra solo le sezioni con risultati
+(`Suggestions.visibleSections()`), mentre una ricerca su una sola categoria la mostra anche vuota.
+
+### Suggerimenti nel form (tappa non ancora salvata)
+
+Il form della tappa può chiedere suggerimenti prima del salvataggio: `stage-suggest.js` invia partenza, fermate e
+arrivo presenti nel form e `DraftSuggestionController` risponde in JSON. Il punto "a metà percorso" è calcolato
+sulla spezzata partenza → fermate → arrivo, perché il percorso stradale non è ancora stato calcolato. Questi
+risultati non vanno in cache: il browser compila il form e l'utente decide se salvare.
+
+| Categoria | Dove cerca (Google Places, Nearby Search) | Tipi Google |
+|---|---|---|
+| Dove dormire | entro 8 km dall'arrivo | `hostel`, `bed_and_breakfast`, `guest_house` |
+| Cosa vedere | entro 15 km da metà percorso e 8 km dall'arrivo, senza doppioni | `tourist_attraction`, `museum`, `historical_landmark`, `national_park` |
+| Dove mangiare | entro 8 km da metà percorso | `restaurant` |
+
+## Endpoint HTTP principali
+
+Pagine HTML (Thymeleaf) salvo dove indicato JSON. Tutte le richieste `POST` richiedono il token CSRF.
+
+| Area | Metodo e percorso | Note |
+|---|---|---|
+| Autenticazione | `GET/POST /register`, `GET /verify`, `POST /verify/resend`, `GET /login`, `POST /logout` | pubbliche, tranne logout |
+| Profilo e foto | `GET /u/{username}`, `GET/POST /profile/edit`, `POST /profile/photo`, `GET /photos/{id}` | foto non approvate visibili solo al proprietario e agli admin |
+| Amici | `GET /friends`, `GET /friends/search?q=`, `POST /friends/{username}/{request,accept,decline,cancel,remove}` | |
+| Chat | `GET /chat?q=`, `GET /chat/with/{username}`, `GET /chat/{id}`, `POST /chat/{id}/messages` (JSON o form), `GET /chat/{id}/messages?before=` (JSON), `POST /chat/{id}/read` | solo partecipanti, invio solo tra amici |
+| Tempo reale | `/ws` (STOMP): `/user/queue/messages`, `/user/queue/notifications` | solo iscrizione, nessun invio dal client |
+| Notifiche | `GET /notifications` | |
+| Notizie | `GET /news?topic=&page=`, `POST /news/subscriptions` | |
+| Road trip | `GET/POST /trips`, `GET /trips/{id}`, `POST /trips/{id}/{edit,delete,leave,members}`, `GET/POST /trips/{id}/stages[/{sid}]`, `POST /trips/{id}/stages/{sid}/{move,delete,reroute}` | permessi per ruolo |
+| Consigli AI | `POST /trips/{id}/stages/{sid}/suggestions[/{placeId}/{stop,accommodation}]`, `POST /trips/{id}/suggestions/preview` (JSON) | solo con `AI_ENABLED=true`, solo organizzatore ed editor |
+| Geocoding | `GET /api/geocode?q=` (JSON) | proxy verso Nominatim |
+| Amministrazione | `GET /admin`, `/admin/photos`, `/admin/news`, `POST /admin/fuel/import` | solo `ROLE_ADMIN` |
 
 ## Sicurezza
 

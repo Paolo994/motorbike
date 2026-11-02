@@ -151,9 +151,20 @@ contemporanee nella stessa istanza.
 3. Nel file `.env` imposta `AI_ENABLED=true`, `ANTHROPIC_API_KEY` e `GOOGLE_PLACES_API_KEY`, poi
    `docker compose --profile app up -d`. Lo stato è visibile nel pannello `/admin` (senza mostrare le chiavi).
 
-Ogni richiesta di consigli esegue 4 ricerche Google Places e una chiamata a Claude. Per contenere la spesa:
+Ogni richiesta fa una chiamata a Claude più le ricerche Google Places delle sole categorie richieste:
+
+| Richiesta | Ricerche Google Places |
+|---|---|
+| Pagina della tappa, *Tutto* | 4 |
+| *Dove dormire* (pagina o form) | 1 |
+| *Cosa vedere* (pagina o form) | 2 |
+| *Dove mangiare* | 1 |
+
+Riferimento misurato su una tappa reale con *Tutto*: circa 14.300 token in ingresso e 1.800 in uscita per Claude,
+cioè circa 0,09 $ con `claude-opus-5-5`; le richieste su una sola categoria costano meno. Per contenere la spesa:
 solo organizzatore ed editor possono generarli, con un massimo di 10 richieste all'ora per utente, e i risultati
-restano in cache per 6 ore. Il link "Apri in Google Maps" non usa API e non ha costi.
+della pagina restano in cache per 6 ore. Si può anche abbassare `AI_EFFORT` a `low` o scegliere un modello più
+economico con `AI_MODEL`. Il link "Apri in Google Maps" non usa API e non ha costi.
 
 Per l'uso di Google Places valgono i termini di Google Maps Platform: i dati dei luoghi non vanno mostrati su
 mappe non Google né archiviati, e va mostrata l'attribuzione. L'app li tiene solo in memoria e li mostra in elenco,
